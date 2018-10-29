@@ -9,6 +9,7 @@ from gevent.pywsgi import WSGIServer
 from gevent.pywsgi import WSGIHandler
 from lib.geventwebsocket.handler import WebSocketHandler
 
+from Plugin import PluginManager
 from UiRequest import UiRequest
 from Site import SiteManager
 from Config import config
@@ -51,7 +52,8 @@ class UiWSGIHandler(WSGIHandler):
         del self.server.sockets[self.client_address]
 
 
-class UiServer:
+@PluginManager.acceptPlugins
+class UiServer(object):
 
     def __init__(self):
         self.ip = config.ui_ip
