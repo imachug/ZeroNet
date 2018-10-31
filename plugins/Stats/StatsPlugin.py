@@ -337,9 +337,7 @@ class GopherHandler(object):
 
         # Cmd stats
         for stat_key, stat in sorted(main.file_server.stat_sent.items(), lambda a, b: cmp(a[1]["bytes"], b[1]["bytes"]), reverse=True):
-            yield "i", "%s" % stat_key
-            yield "i", "x %s" % stat["num"]
-            yield "i", "%.0fkB" % (stat["bytes"] / 1024)
+            yield "i", "%s x %s = %.0fkB" % (stat_key, stat["num"], (stat["bytes"] / 1024))
             yield
 
     
@@ -353,9 +351,7 @@ class GopherHandler(object):
         yield
 
         for stat_key, stat in sorted(main.file_server.stat_recv.items(), lambda a, b: cmp(a[1]["bytes"], b[1]["bytes"]), reverse=True):
-            yield "i", "%s" % stat_key
-            yield "i", "x %s" % stat["num"]
-            yield "i", "%.0fkB" % (stat["bytes"] / 1024)
+            yield "i", "%s x %s = %.0fkB" % (stat_key, stat["num"], (stat["bytes"] / 1024))
             yield
 
 
