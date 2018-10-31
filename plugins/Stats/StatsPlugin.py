@@ -5,6 +5,382 @@ import json
 
 from Plugin import PluginManager
 from Config import config
+from Site import SiteManager
+
+
+@PluginManager.registerTo("GopherHandler")
+class GopherHandler(object):
+    def actionStats(self, arg=None):
+        import gc
+        import sys
+        #from Ui import UiRequest
+        from Db import Db
+        from Crypt import CryptConnection
+
+
+        if "Multiuser" in PluginManager.plugin_manager.plugin_names and not config.multiuser_local:
+            yield "3", "This function is disabled on this proxy"
+            #raise StopIteration
+            return
+        
+        s = time.time()
+        main = sys.modules["main"]
+
+        if arg == "Connections":
+            for line in self.actionConnections(main):
+                yield line
+            return
+        elif arg == "Trackers":
+            for line in self.actionTrackers():
+                yield line
+            return
+        elif arg == "SharedTrackers":
+            for line in self.actionSharedTrackers():
+                yield line
+            return
+        elif arg == "Tor":
+            for line in self.actionTor(main):
+                yield line
+            return
+        elif arg == "Db":
+            for line in self.actionDb():
+                yield line
+            return
+        elif arg == "Sites":
+            for line in self.actionSites():
+                yield line
+            return
+        elif arg == "BigFiles":
+            for line in self.actionBigFiles():
+                yield line
+            return
+        elif arg == "SentCommands":
+            for line in self.actionSentCommands(main):
+                yield line
+            return
+        elif arg == "ReceivedCommands":
+            for line in self.actionReceivedCommands(main):
+                yield line
+            return
+        elif arg == "Objects":
+            for line in self.actionObjects():
+                yield line
+            return
+        elif arg == "Classes":
+            for line in self.actionClasses():
+                yield line
+            return
+        
+
+        yield "i", "ZeroNet Stats"
+        yield 
+        yield "1", "Connections", "/Stats/Connections"
+        yield "1", "Trackers", "/Stats/Trackers"
+        if "AnnounceShare" in PluginManager.plugin_manager.plugin_names:
+            yield "1", "Shared trackers", "/Stats/SharedTrackers"
+        yield "1", "Tor hidden services", "/Stats/Tor"
+        yield "1", "Db", "/Stats/Db"
+        yield "1", "Sites", "/Stats/Sites",
+        yield "1", "Big Files", "/Stats/BigFiles"
+        yield "1", "Sent commands", "/Stats/SentCommands"
+        yield "1", "Received commands", "/Stats/ReceivedCommands"
+
+        # No more if not in debug mode
+        if not config.debug:
+            yield "1", "Objects in memory", "/Stats/Objects"
+            yield "1", "Classes in memory", "/Stats/Classes"
+
+            #yield "1", "Greenlets", "/Stats/Greenlets"
+            #yield "1", "Workers", "/Stats/Workers"
+            #yield "1", "Connections", "/Stats/Connections"
+            #yield "1", "Sockets", "/Stats/Sockets"
+            #yield "1", "Msgpack unpacker", "/Stats/MsgpackUnpacker"
+            #yield "1", "Sites", "/Stats/Sites" # TODO
+            #yield "1", "Loggers", "/Stats/Loggers"
+            #yield "1", "UiRequests", "/Stats/UiRequests"
+            #yield "1", "Peers", "/Stats/Peers"
+            #yield "1", "Modules", "/Stats/Modules"
+
+        yield
+
+        yield "i", "rev%s" % config.rev
+        yield "i", "IP: %s" % config.ip_external
+        yield "i", "Port: %s" % main.file_server.port
+        yield "i", "Opened: %s" % main.file_server.port_opened
+        yield "i", "Crypt: %s" % CryptConnection.manager.crypt_supported
+        yield "i", "In: %.2fMB, Out: %.2fMB" % (
+            float(main.file_server.bytes_recv) / 1024 / 1024,
+            float(main.file_server.bytes_sent) / 1024 / 1024
+        )
+        yield "i", "Peerid: %s" % main.file_server.peer_id
+        yield "i", "Time correction: %.2fs" % main.file_server.getTimecorrection()
+
+        try:
+            import psutil
+            process = psutil.Process(os.getpid())
+            mem = process.get_memory_info()[0] / float(2 ** 20)
+            yield "i", "Mem: %.2fMB" % mem
+            yield "i", "Threads: %s" % len(process.threads())
+            yield "i", "CPU: usr %.2fs sys %.2fs" % process.cpu_times()
+            yield "i", "Files: %s" % len(process.open_files())
+            yield "i", "Sockets: %s" % len(process.connections())
+            #yield "Calc size <a href='?size=1'>on</a> <a href='?size=0'>off</a>"
+        except Exception:
+            pass
+        yield
+
+
+    def actionConnections(self, main):
+        import gc
+        import sys
+        from Db import Db
+        from Crypt import CryptConnection
+
+        yield "i", "ZeroNet Stats - Connections (%s, total made: %s, in: %s, out: %s)" % (
+            len(main.file_server.connections), main.file_server.last_connection_id, main.file_server.num_incoming, main.file_server.num_outgoing
+        )
+        yield
+
+        for connection in main.file_server.connections:
+            if "cipher" in dir(connection.sock):
+                cipher = connection.sock.cipher()[0]
+                tls_version = connection.sock.version()
+            else:
+                cipher = connection.crypt
+                tls_version = ""
+            if "time" in connection.handshake and connection.last_ping_delay:
+                time_correction = connection.handshake["time"] - connection.handshake_time - connection.last_ping_delay
+            else:
+                time_correction = 0.0
+            yield "i", "id: %3d" % connection.id
+            yield "i", "type: %s" % connection.type
+            yield "i", "ip: %s:%s" % (connection.ip, connection.port)
+            yield "i", "open: %s" % connection.handshake.get("port_opened")
+            yield "i", "crypt: %s" % connection.crypt
+            #yield "i", "ping: %6.3f" % connection.last_ping_delay # TODO
+            yield "i", "buf: %s" % connection.incomplete_buff_recv
+            yield "i", "bad: %s" % connection.bad_actions
+            yield "i", "idle: since %s" % max(connection.last_send_time, connection.last_recv_time)
+            yield "i", "open: since %s" % connection.start_time
+            yield "i", "delay: %.3f" % max(-1, connection.last_sent_time - connection.last_send_time)
+            yield "i", "cpu: %.3f" % connection.cpu_time
+            yield "i", "out: %.0fkB" % (connection.bytes_sent / 1024)
+            yield "i", "in: %.0fkB" % (connection.bytes_recv / 1024)
+            yield "i", "last sent: %s" % connection.last_cmd_sent
+            yield "i", "wait: %s" % connection.waiting_requests.keys()
+            yield "i", "version: %s r%s" % (connection.handshake.get("version"), connection.handshake.get("rev", "?"))
+            yield "i", "time: %.2fs" % time_correction
+            yield "i", "sites: %s" % connection.sites
+            yield
+
+
+    def actionTrackers(self):
+        import gc
+        import sys
+        from Db import Db
+        from Crypt import CryptConnection
+
+        yield "i", "ZeroNet Stats - Trackers"
+        yield
+
+        for tracker_address, tracker_stat in sorted(sys.modules["Site.SiteAnnouncer"].global_stats.iteritems()):
+            yield "i", "Address: %s" % tracker_address
+            yield "i", "Request: %s" % tracker_stat["num_request"]
+            yield "i", "Successive errors: %s" % tracker_stat["num_error"]
+            yield "i", "last_request: %.0f min ago" % min(999, (time.time() - tracker_stat["time_request"]) / 60)
+            yield
+
+
+    def actionSharedTrackers(self):
+        import gc
+        import sys
+        from Db import Db
+        from Crypt import CryptConnection
+
+        if "AnnounceShare" in PluginManager.plugin_manager.plugin_names:
+            yield "i", "ZeroNet Stats - Shared trackers"
+            yield
+
+            from AnnounceShare import AnnounceSharePlugin
+            for tracker_address, tracker_stat in sorted(AnnounceSharePlugin.tracker_storage.getTrackers().iteritems()):
+                yield "i", "Address: %s" % tracker_address
+                yield "i", "Added: %.0f min ago" % min(999, (time.time() - tracker_stat["time_added"]) / 60)
+                yield "i", "Found: %.0f min ago" % min(999, (time.time() - tracker_stat.get("time_found", 0)) / 60)
+                yield "i", "Latency: %.3fs" % tracker_stat["latency"]
+                yield "i", "Successive errors: %s" % tracker_stat["num_error"]
+                yield "i", "last_success: %.0f min ago" % min(999, (time.time() - tracker_stat["time_success"]) / 60)
+                yield
+        else:
+            yield "3", "AnnounceShare plugin not installed"
+
+
+    def actionTor(self, main):
+        import gc
+        import sys
+        from Db import Db
+        from Crypt import CryptConnection
+
+        yield "i", "ZeroNet Stats - Tor hidden services (status: %s)" % main.file_server.tor_manager.status
+        yield
+
+        for site_address, onion in main.file_server.tor_manager.site_onions.items():
+            yield "i", "- %-34s: %s" % (site_address, onion)
+            yield
+    
+
+    def actionDb(self):
+        import gc
+        import sys
+        from Db import Db
+        from Crypt import CryptConnection
+
+        yield "i", "ZeroNet Stats - Db"
+        yield
+
+        for db in sys.modules["Db.Db"].opened_dbs:
+            tables = [row["name"] for row in db.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()]
+            table_rows = {}
+            for table in tables:
+                table_rows[table] = db.execute("SELECT COUNT(*) AS c FROM %s" % table).fetchone()["c"]
+            db_size = os.path.getsize(db.db_path) / 1024.0 / 1024.0
+            yield "i", "- %.3fs: %s" % (
+                time.time() - db.last_query_time, db.db_path.encode("utf8")
+            )
+            yield "i", "  %.3fMB" % db_size
+            yield "i", "  table rows: %s" % json.dumps(table_rows, sort_keys=True)
+            yield
+
+
+    def actionSites(self):
+        import gc
+        import sys
+        from Db import Db
+        from Crypt import CryptConnection
+
+        yield "i", "ZeroNet Stats - Sites"
+        yield
+        
+        sites = SiteManager.site_manager.list()
+
+        for site in sorted(sites.values(), lambda a, b: cmp(a.address,b.address)):
+            yield "i", "Address: %s" % site.address
+            yield "i", "Connected: %s" % [peer.connection.id for peer in site.peers.values() if peer.connection and peer.connection.connected]
+            yield "i", "Peers: %s/%s/%s" % (
+                len([peer for peer in site.peers.values() if peer.connection and peer.connection.connected]),
+                len(site.getConnectablePeers(100)),
+                len(site.peers)
+            )
+            yield "i", "content.json: %s (loaded: %s)" % (
+                len(site.content_manager.contents),
+                len([key for key, val in dict(site.content_manager.contents).iteritems() if val])
+            )
+            yield "i", "out: %.0fkB" % (site.settings.get("bytes_sent", 0) / 1024)
+            yield "i", "in: %.0fkB" % (site.settings.get("bytes_recv", 0) / 1024)
+            yield "i", "serving-%s" % site.settings["serving"]
+
+            for key, peer in site.peers.items(): # TODO
+                if peer.time_found:
+                    time_found = int(time.time() - peer.time_found) / 60
+                else:
+                    time_found = "--"
+                if peer.connection:
+                    connection_id = peer.connection.id
+                else:
+                    connection_id = None
+                if site.content_manager.has_optional_files:
+                    yield "i", "Optional files: %4s " % len(peer.hashfield)
+                time_added = (time.time() - peer.time_added) / (60 * 60 * 24)
+                yield "i", "(#%4s, rep: %2s, err: %s, found: %3s min, add: %.1f day) %30s -" % (connection_id, peer.reputation, peer.connection_error, time_found, time_added, key)
+
+
+    def actionBigFiles(self):
+        import gc
+        import sys
+        from Db import Db
+        from Crypt import CryptConnection
+
+        yield "i", "ZeroNet Stats - Big Files"
+        yield
+
+        sites = SiteManager.site_manager.list()
+
+        for site in sites.values():
+            if not site.settings.get("has_bigfile"):
+                continue
+            bigfiles = {}
+            yield "i", "%s" % site.address
+            for peer in site.peers.values():
+                if not peer.time_piecefields_updated:
+                    continue
+                for sha512, piecefield in peer.piecefields.iteritems():
+                    if sha512 not in bigfiles:
+                        bigfiles[sha512] = []
+                    bigfiles[sha512].append(peer)
+
+            #yield "<div id='bigfiles_%s' style='display: none'>" % site.address
+            for sha512, peers in bigfiles.iteritems():
+                yield "i", " - " + sha512 + " (hash id: %s)" % site.content_manager.hashfield.getHashId(sha512)
+                for peer in peers:
+                    yield "i", "%s" % peer.key
+                    yield "i", "%s" % peer.piecefields[sha512].tostring()
+                    yield
+
+
+    def actionSentCommands(self, main):
+        import gc
+        import sys
+        from Db import Db
+        from Crypt import CryptConnection
+
+        yield "i", "ZeroNet Stats - Sent commands"
+        yield
+
+        # Cmd stats
+        for stat_key, stat in sorted(main.file_server.stat_sent.items(), lambda a, b: cmp(a[1]["bytes"], b[1]["bytes"]), reverse=True):
+            yield "i", "%s x %s = %.0fkB" % (stat_key, stat["num"], (stat["bytes"] / 1024))
+            yield
+
+    
+    def actionReceivedCommands(self, main):
+        import gc
+        import sys
+        from Db import Db
+        from Crypt import CryptConnection
+
+        yield "i", "ZeroNet Stats - Received Commands"
+        yield
+
+        for stat_key, stat in sorted(main.file_server.stat_recv.items(), lambda a, b: cmp(a[1]["bytes"], b[1]["bytes"]), reverse=True):
+            yield "i", "%s x %s = %.0fkB" % (stat_key, stat["num"], (stat["bytes"] / 1024))
+            yield
+
+
+    def actionObjects(self):
+        import gc
+        import sys
+        from Db import Db
+        from Crypt import CryptConnection
+
+        if not config.debug:
+            yield "3", "Not in debug mode"
+            return
+
+        yield "i", "ZeroNet Stats - Objects in memory"
+        yield
+
+
+    def actionClasses(self):
+        import gc
+        import sys
+        from Db import Db
+        from Crypt import CryptConnection
+
+        if not config.debug:
+            yield "3", "Not in debug mode"
+            return
+
+        yield "i", "ZeroNet Stats - Classes in memory"
+        yield
 
 
 @PluginManager.registerTo("UiRequest")
