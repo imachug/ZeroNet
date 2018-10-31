@@ -5,6 +5,7 @@ import json
 
 from Plugin import PluginManager
 from Config import config
+from Site import SiteManager
 
 
 @PluginManager.registerTo("GopherHandler")
@@ -103,7 +104,7 @@ class GopherHandler(object):
         yield
 
         yield "i", "rev%s" % config.rev
-        yield "i", "%s" % config.ip_external
+        yield "i", "IP: %s" % config.ip_external
         yield "i", "Port: %s" % main.file_server.port
         yield "i", "Opened: %s" % main.file_server.port_opened
         yield "i", "Crypt: %s" % CryptConnection.manager.crypt_supported
@@ -258,8 +259,10 @@ class GopherHandler(object):
 
         yield "i", "ZeroNet Stats - Sites"
         yield
+        
+        sites = SiteManager.site_manager.list()
 
-        for site in sorted(self.server.sites.values(), lambda a, b: cmp(a.address,b.address)):
+        for site in sorted(sites.values(), lambda a, b: cmp(a.address,b.address)):
             yield "i", "Address: %s" % site.address
             yield "i", "Connected: %s" % [peer.connection.id for peer in site.peers.values() if peer.connection and peer.connection.connected]
             yield "i", "Peers: %s/%s/%s" % (
@@ -271,8 +274,8 @@ class GopherHandler(object):
                 len(site.content_manager.contents),
                 len([key for key, val in dict(site.content_manager.contents).iteritems() if val])
             )
-            yield "i", "out: %.0fkB" % site.settings.get("bytes_sent", 0) / 1024
-            yield "i", "in: %.0fkB" % site.settings.get("bytes_recv", 0) / 1024
+            yield "i", "out: %.0fkB" % (site.settings.get("bytes_sent", 0) / 1024)
+            yield "i", "in: %.0fkB" % (site.settings.get("bytes_recv", 0) / 1024)
             yield "i", "serving-%s" % site.settings["serving"]
 
             for key, peer in site.peers.items(): # TODO
@@ -299,7 +302,9 @@ class GopherHandler(object):
         yield "i", "ZeroNet Stats - Big Files"
         yield
 
-        for site in self.server.sites.values():
+        sites = SiteManager.site_manager.list()
+
+        for site in sites.values():
             if not site.settings.get("has_bigfile"):
                 continue
             bigfiles = {}
