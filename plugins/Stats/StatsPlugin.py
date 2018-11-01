@@ -14,13 +14,9 @@ def importPluginnedClasses():
 
 @PluginManager.registerTo("GopherHandler")
 class GopherHandler(object):
-    def actionStats(self, arg=None):
+    def actionStats(self, arg=None, arg2=None):
         import gc
         import sys
-        #from Ui import UiRequest
-        from Db import Db
-        from Crypt import CryptConnection
-
 
         if "Multiuser" in PluginManager.plugin_manager.plugin_names and not config.multiuser_local:
             yield "3", "This function is disabled on this proxy"
@@ -31,115 +27,101 @@ class GopherHandler(object):
         main = sys.modules["main"]
 
         if arg == "Connections":
-            for line in self.actionConnections(main):
+            for line in self.statsConnections(main):
                 yield line
-            return
         elif arg == "Trackers":
-            for line in self.actionTrackers():
+            for line in self.statsTrackers():
                 yield line
-            return
         elif arg == "SharedTrackers":
-            for line in self.actionSharedTrackers():
+            for line in self.statsSharedTrackers():
                 yield line
-            return
         elif arg == "Tor":
-            for line in self.actionTor(main):
+            for line in self.statsTor(main):
                 yield line
-            return
         elif arg == "Db":
-            for line in self.actionDb():
+            for line in self.statsDb():
                 yield line
-            return
         elif arg == "Sites":
-            for line in self.actionSites():
+            for line in self.statsSites():
                 yield line
-            return
         elif arg == "BigFiles":
-            for line in self.actionBigFiles():
+            for line in self.statsBigFiles():
                 yield line
-            return
         elif arg == "SentCommands":
-            for line in self.actionSentCommands(main):
+            for line in self.statsSentCommands(main):
                 yield line
-            return
         elif arg == "ReceivedCommands":
-            for line in self.actionReceivedCommands(main):
+            for line in self.statsReceivedCommands(main):
                 yield line
-            return
         elif arg == "Objects":
-            for line in self.actionObjects():
+            for line in self.statsObjects():
                 yield line
-            return
         elif arg == "Classes":
-            for line in self.actionClasses():
+            for line in self.statsClasses(arg2):
                 yield line
-            return
+        elif arg == None:
+            yield "i", "ZeroNet Stats"
+            yield 
+            yield "1", "Connections", "/Stats/Connections"
+            yield "1", "Trackers", "/Stats/Trackers"
+            if "AnnounceShare" in PluginManager.plugin_manager.plugin_names:
+                yield "1", "Shared trackers", "/Stats/SharedTrackers"
+            yield "1", "Tor hidden services", "/Stats/Tor"
+            yield "1", "Db", "/Stats/Db"
+            yield "1", "Sites", "/Stats/Sites",
+            yield "1", "Big Files", "/Stats/BigFiles"
+            yield "1", "Sent commands", "/Stats/SentCommands"
+            yield "1", "Received commands", "/Stats/ReceivedCommands"
+            yield
+
+            # No more if not in debug mode
+            if config.debug:
+                yield "1", "Objects in memory", "/Stats/Objects"
+                yield "1", "Classes in memory", "/Stats/Classes"
+                yield
+
+            yield "i", "rev%s" % config.rev
+            yield "i", "IP: %s" % config.ip_external
+            yield "i", "Port: %s" % main.file_server.port
+            yield "i", "Opened: %s" % main.file_server.port_opened
+            yield "i", "Crypt: %s" % CryptConnection.manager.crypt_supported
+            yield "i", "In: %.2fMB, Out: %.2fMB" % (
+                float(main.file_server.bytes_recv) / 1024 / 1024,
+                float(main.file_server.bytes_sent) / 1024 / 1024
+            )
+            yield "i", "Peerid: %s" % main.file_server.peer_id
+            yield "i", "Time correction: %.2fs" % main.file_server.getTimecorrection()
+
+            try:
+                import psutil
+                process = psutil.Process(os.getpid())
+                mem = process.get_memory_info()[0] / float(2 ** 20)
+                yield "i", "Mem: %.2fMB" % mem
+                yield "i", "Threads: %s" % len(process.threads())
+                yield "i", "CPU: usr %.2fs sys %.2fs" % process.cpu_times()
+                yield "i", "Files: %s" % len(process.open_files())
+                yield "i", "Sockets: %s" % len(process.connections())
+                #yield "Calc size <a href='?size=1'>on</a> <a href='?size=0'>off</a>"
+            except Exception:
+                pass
+            yield
+        else:
+            if arg2 != None:
+                yield "3", "Unknown remote path /Stats/%s/%s" % (arg, arg2)
+            else:
+                yield "3", "Unknown remote path /Stats/%s" % arg
+            yield
+
+        if arg != None:
+            yield "1", "Return to /Stats", "/Stats"
+        yield "1", "Return home", "/"
         
-
-        yield "i", "ZeroNet Stats"
-        yield 
-        yield "1", "Connections", "/Stats/Connections"
-        yield "1", "Trackers", "/Stats/Trackers"
-        if "AnnounceShare" in PluginManager.plugin_manager.plugin_names:
-            yield "1", "Shared trackers", "/Stats/SharedTrackers"
-        yield "1", "Tor hidden services", "/Stats/Tor"
-        yield "1", "Db", "/Stats/Db"
-        yield "1", "Sites", "/Stats/Sites",
-        yield "1", "Big Files", "/Stats/BigFiles"
-        yield "1", "Sent commands", "/Stats/SentCommands"
-        yield "1", "Received commands", "/Stats/ReceivedCommands"
-
-        # No more if not in debug mode
-        if not config.debug:
-            yield "1", "Objects in memory", "/Stats/Objects"
-            yield "1", "Classes in memory", "/Stats/Classes"
-
-            #yield "1", "Greenlets", "/Stats/Greenlets"
-            #yield "1", "Workers", "/Stats/Workers"
-            #yield "1", "Connections", "/Stats/Connections"
-            #yield "1", "Sockets", "/Stats/Sockets"
-            #yield "1", "Msgpack unpacker", "/Stats/MsgpackUnpacker"
-            #yield "1", "Sites", "/Stats/Sites" # TODO
-            #yield "1", "Loggers", "/Stats/Loggers"
-            #yield "1", "UiRequests", "/Stats/UiRequests"
-            #yield "1", "Peers", "/Stats/Peers"
-            #yield "1", "Modules", "/Stats/Modules"
-
+        gc.collect()  # Implicit grabage collection
         yield
-
-        yield "i", "rev%s" % config.rev
-        yield "i", "IP: %s" % config.ip_external
-        yield "i", "Port: %s" % main.file_server.port
-        yield "i", "Opened: %s" % main.file_server.port_opened
-        yield "i", "Crypt: %s" % CryptConnection.manager.crypt_supported
-        yield "i", "In: %.2fMB, Out: %.2fMB" % (
-            float(main.file_server.bytes_recv) / 1024 / 1024,
-            float(main.file_server.bytes_sent) / 1024 / 1024
-        )
-        yield "i", "Peerid: %s" % main.file_server.peer_id
-        yield "i", "Time correction: %.2fs" % main.file_server.getTimecorrection()
-
-        try:
-            import psutil
-            process = psutil.Process(os.getpid())
-            mem = process.get_memory_info()[0] / float(2 ** 20)
-            yield "i", "Mem: %.2fMB" % mem
-            yield "i", "Threads: %s" % len(process.threads())
-            yield "i", "CPU: usr %.2fs sys %.2fs" % process.cpu_times()
-            yield "i", "Files: %s" % len(process.open_files())
-            yield "i", "Sockets: %s" % len(process.connections())
-            #yield "Calc size <a href='?size=1'>on</a> <a href='?size=0'>off</a>"
-        except Exception:
-            pass
-        yield
+        yield "i", "Done in %.1f" % (time.time() - s)
 
 
-    def actionConnections(self, main):
-        import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
-
+    def statsConnections(self, main):
         yield "i", "ZeroNet Stats - Connections (%s, total made: %s, in: %s, out: %s)" % (
             len(main.file_server.connections), main.file_server.last_connection_id, main.file_server.num_incoming, main.file_server.num_outgoing
         )
@@ -161,7 +143,7 @@ class GopherHandler(object):
             yield "i", "ip: %s:%s" % (connection.ip, connection.port)
             yield "i", "open: %s" % connection.handshake.get("port_opened")
             yield "i", "crypt: %s" % connection.crypt
-            #yield "i", "ping: %6.3f" % connection.last_ping_delay # TODO
+            #yield "i", "ping: %6.3f" % connection.last_ping_delay # TODO, FIXME
             yield "i", "buf: %s" % connection.incomplete_buff_recv
             yield "i", "bad: %s" % connection.bad_actions
             yield "i", "idle: since %s" % max(connection.last_send_time, connection.last_recv_time)
@@ -178,11 +160,8 @@ class GopherHandler(object):
             yield
 
 
-    def actionTrackers(self):
-        import gc
+    def statsTrackers(self):
         import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         yield "i", "ZeroNet Stats - Trackers"
         yield
@@ -195,13 +174,8 @@ class GopherHandler(object):
             yield
 
 
-    def actionSharedTrackers(self):
-        import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
-
-        if "AnnounceShare" in PluginManager.plugin_manager.plugin_names:
+    def statsSharedTrackers(self):
+        if "AnnounceShare" in  PluginManager.plugin_manager.plugin_names:
             yield "i", "ZeroNet Stats - Shared trackers"
             yield
 
@@ -216,14 +190,10 @@ class GopherHandler(object):
                 yield
         else:
             yield "3", "AnnounceShare plugin not installed"
+            yield
 
 
-    def actionTor(self, main):
-        import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
-
+    def statsTor(self, main):
         yield "i", "ZeroNet Stats - Tor hidden services (status: %s)" % main.file_server.tor_manager.status
         yield
 
@@ -232,11 +202,8 @@ class GopherHandler(object):
             yield
     
 
-    def actionDb(self):
-        import gc
-        import sys
+    def statsDb(self):
         from Db import Db
-        from Crypt import CryptConnection
 
         yield "i", "ZeroNet Stats - Db"
         yield
@@ -255,12 +222,7 @@ class GopherHandler(object):
             yield
 
 
-    def actionSites(self):
-        import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
-
+    def statsSites(self):
         yield "i", "ZeroNet Stats - Sites"
         yield
         
@@ -295,14 +257,10 @@ class GopherHandler(object):
                     yield "i", "Optional files: %4s " % len(peer.hashfield)
                 time_added = (time.time() - peer.time_added) / (60 * 60 * 24)
                 yield "i", "(#%4s, rep: %2s, err: %s, found: %3s min, add: %.1f day) %30s -" % (connection_id, peer.reputation, peer.connection_error, time_found, time_added, key)
+                yield
 
 
-    def actionBigFiles(self):
-        import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
-
+    def statsBigFiles(self):
         yield "i", "ZeroNet Stats - Big Files"
         yield
 
@@ -330,12 +288,7 @@ class GopherHandler(object):
                     yield
 
 
-    def actionSentCommands(self, main):
-        import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
-
+    def statsSentCommands(self, main):
         yield "i", "ZeroNet Stats - Sent commands"
         yield
 
@@ -345,12 +298,7 @@ class GopherHandler(object):
             yield
 
     
-    def actionReceivedCommands(self, main):
-        import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
-
+    def statsReceivedCommands(self, main):
         yield "i", "ZeroNet Stats - Received Commands"
         yield
 
@@ -359,32 +307,379 @@ class GopherHandler(object):
             yield
 
 
-    def actionObjects(self):
+    def statsObjects(self):
         import gc
         import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         if not config.debug:
             yield "3", "Not in debug mode"
             return
 
-        yield "i", "ZeroNet Stats - Objects in memory"
+        obj_count = {}
+        for obj in gc.get_objects():
+            obj_type = str(type(obj))
+            if obj_type not in obj_count:
+                obj_count[obj_type] = [0, 0]
+            obj_count[obj_type][0] += 1  # Count
+            obj_count[obj_type][1] += float(sys.getsizeof(obj)) / 1024  # Size
+
+        yield "i", "ZeroNet Stats - Objects in memory (types: %s, total: %s, %.2fkb)" % (
+            len(obj_count),
+            sum([stat[0] for stat in obj_count.values()]),
+            sum([stat[1] for stat in obj_count.values()])
+        )
+        yield
+
+        for obj, stat in sorted(obj_count.items(), key=lambda x: x[1][0], reverse=True):  # Sorted by count
+            yield "i", " - %.1fkB = %s x %s" % (stat[1], stat[0], obj)
         yield
 
 
-    def actionClasses(self):
+    def statsClasses(self, arg=None):
         import gc
         import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         if not config.debug:
             yield "3", "Not in debug mode"
             return
 
-        yield "i", "ZeroNet Stats - Classes in memory"
+        hpy = None
+        #if self.get.get("size") == "1":  # Calc obj size
+        try:
+            import guppy
+            hpy = guppy.hpy()
+        except:
+            pass
+        
+        if arg == "Greenlets":
+            for line in self.statsClassesGreenlets(hpy):
+                yield line
+        elif arg == "Workers":
+            for line in self.statsClassesWorkers(hpy):
+                yield line
+        elif arg == "Connections":
+            for line in self.statsClassesConnections(hpy):
+                yield line
+        elif arg == "Sockets":
+            for line in self.statsClassesSockets(hpy):
+                yield line
+        elif arg == "MsgpackUnpacker":
+            for line in self.statsClassesMsgpackUnpacker(hpy):
+                yield line
+        elif arg == "Sites":
+            for line in self.statsClassesSites(hpy):
+                yield line
+        elif arg == "Loggers":
+            for line in self.statsClassesLoggers(hpy):
+                yield line
+        elif arg == "UiRequests":
+            for line in self.statsClassesUiRequests(hpy):
+                yield line
+        elif arg == "Peers":
+            for line in self.statsClassesPeers(hpy):
+                yield line
+        elif arg == "Modules":
+            for line in self.statsClassesModules(hpy):
+                yield line
+        elif arg == None:
+            class_count = {}
+            for obj in gc.get_objects():
+                obj_type = str(type(obj))
+                if obj_type != "<type 'instance'>":
+                    continue
+                class_name = obj.__class__.__name__
+                if class_name not in class_count:
+                    class_count[class_name] = [0, 0]
+                class_count[class_name][0] += 1  # Count
+                class_count[class_name][1] += float(sys.getsizeof(obj)) / 1024  # Size
+
+            yield "i", "ZeroNet Stats - Classes in memory (types: %s, total: %s, %.2fkb)" % (
+                len(class_count),
+                sum([stat[0] for stat in class_count.values()]),
+                sum([stat[1] for stat in class_count.values()])
+            )
+            yield
+
+            yield "1", "Greenlets", "/Stats/Classes/Greenlets"
+            yield "1", "Workers", "/Stats/Classes/Workers"
+            yield "1", "Connections", "/Stats/Classes/Connections"
+            yield "1", "Sockets", "/Stats/Classes/Sockets"
+            yield "1", "Msgpack unpacker", "/Stats/Classes/MsgpackUnpacker"
+            yield "1", "Sites", "/Stats/Classes/Sites"
+            yield "1", "Loggers", "/Stats/Classes/Loggers"
+            yield "1", "UiRequests", "/Stats/Classes/UiRequests"
+            yield "1", "Peers", "/Stats/Classes/Peers"
+            yield "1", "Modules", "/Stats/Classes/Modules"
+            yield
+
+            for obj, stat in sorted(class_count.items(), key=lambda x: x[1][0], reverse=True):  # Sorted by count
+                yield "i", " - %.1fkb = %s x %s" % (stat[1], stat[0], obj)
+            yield
+        else:
+            yield "3", "Unknown remote path /Stats/Classes/%s" % arg
+            yield
+
+        if arg != None:
+            yield "1", "Return to /Stats/Classes", "/Stats/Classes"
+    
+
+    def statsClassesGreenlets(self, hpy):
+        import gc
+
+        if not config.debug:
+            yield "3", "Not in debug mode"
+            return
+        
+        from greenlet import greenlet
+        objs = [obj for obj in gc.get_objects() if isinstance(obj, greenlet)]
+
+        yield "i", "ZeroNet Stats - Classes in memory - Greenlets (%s)" % len(objs)
         yield
+
+        for obj in objs:
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj).encode("utf8"))
+        
+        yield
+
+
+    def statsClassesWorkers(self, hpy):
+        import gc
+
+        if not config.debug:
+            yield "3", "Not in debug mode"
+            return
+
+        from Worker import Worker
+        objs = [obj for obj in gc.get_objects() if isinstance(obj, Worker)]
+        yield "i", "ZeroNet Stats - Classes in memory - Workers (%s)" % len(objs)
+        for obj in objs:
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj))
+
+        yield
+
+    
+    def statsClassesConnections(self, hpy):
+        import gc
+
+        if not config.debug:
+            yield "3", "Not in debug mode"
+            return
+
+        from Connection import Connection
+        objs = [obj for obj in gc.get_objects() if isinstance(obj, Connection)]
+        yield "i", "ZeroNet Stats - Classes in memory - Connections (%s)" % len(objs)
+        for obj in objs:
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj))
+        
+        yield
+
+
+    def statsClassesSockets(self, hpy):
+        import gc
+
+        if not config.debug:
+            yield "3", "Not in debug mode"
+            return
+        
+        from socket import socket
+        objs = [obj for obj in gc.get_objects() if isinstance(obj, socket)]
+        yield "i", "ZeroNet Stats - Classes in memory - Sockets (%s)" % len(objs)
+        for obj in objs:
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj))
+        
+        yield
+
+
+    def statsClassesMsgpackUnpacker(self, hpy):
+        import gc
+
+        if not config.debug:
+            yield "3", "Not in debug mode"
+            return
+        
+        from msgpack import Unpacker
+        objs = [obj for obj in gc.get_objects() if isinstance(obj, Unpacker)]
+        yield "i",  "ZeroNet Stats - Classes in memory - Msgpack unpacker (%s)" % len(objs)
+        for obj in objs:
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj))
+        
+        yield
+
+
+    def statsClassesSites(self, hpy):
+        import gc
+
+        if not config.debug:
+            yield "3", "Not in debug mode"
+            return
+
+        from Site import Site
+        objs = [obj for obj in gc.get_objects() if isinstance(obj, Site)]
+        yield "ZeroNet Stats - Classes in memory - Sites (%s)" % len(objs)
+        for obj in objs:
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj))
+        
+        yield
+
+
+    def statsClassesLoggers(self, hpy):
+        import gc
+
+        if not config.debug:
+            yield "3", "Not in debug mode"
+            return
+
+        objs = [obj for obj in gc.get_objects() if isinstance(obj, self.server.log.__class__)] # TODO, FIXME
+        yield "i", "ZeroNet Stats - Classes in memory - Loggers (%s)" % len(objs)
+        for obj in objs:
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj.name))
+        
+        yield
+
+
+    def statsClassesUiRequests(self, hpy):
+        import gc
+        from Ui import UiRequest
+
+        if not config.debug:
+            yield "3", "Not in debug mode"
+            return
+
+        objs = [obj for obj in gc.get_objects() if isinstance(obj, UiRequest)]
+        yield "i", "ZeroNet Stats - Classes in memory - UiRequests (%s)" % len(objs)
+        for obj in objs:
+            yield "i", " - %.1fkb: %s<br>" % (self.getObjSize(obj, hpy), repr(obj))
+        
+        yield
+
+
+    def statsClassesPeers(self, hpy):
+        import gc
+
+        if not config.debug:
+            yield "3", "Not in debug mode"
+            return
+        
+        from Peer import Peer
+        objs = [obj for obj in gc.get_objects() if isinstance(obj, Peer)]
+        yield "i", "ZeroNet Stats - Classes in memory - Peers (%s)" % len(objs)
+        for obj in objs:
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj))
+        
+        yield
+
+
+    def statsClassesModules(self, hpy):
+        import gc
+        import sys
+
+        if not config.debug:
+            yield "3", "Not in debug mode"
+            return
+
+        objs = [(key, val) for key, val in sys.modules.iteritems() if val is not None]
+        objs.sort()
+        yield "i", "ZeroNet Stats - Classes in memory - Modules (%s)" % len(objs)
+        for module_name, module in objs:
+            yield "i", " - %.3fkb: %s %s" % (self.getObjSize(module, hpy), module_name, repr(module))
+        
+        yield
+
+
+    def actionBenchmark(self, arg=None):
+        import sys
+        import gc
+        from contextlib import contextmanager
+
+        if "Multiuser" in PluginManager.plugin_manager.plugin_names and not config.multiuser_local:
+            yield "3", "This function is disabled on this proxy"
+            return
+
+        t = time.time();
+
+        if arg == "CryptBitcoin":
+            for line in self.benchmarkCryptBitcoin():
+                yield line
+        elif arg == "CryptHash":
+            for line in self.benchmarkCryptHash():
+                yield line
+        elif arg == "Msgpack":
+            for line in self.benchmarkMsgpack():
+                yield line
+        elif arg == "Db":
+            for line in self.benchmarkDb():
+                yield line
+        elif arg == "Compression":
+            for line in self.benchmarkCompression():
+                yield line
+        elif arg == None:
+            yield "i", "ZeroNet Benchmark"
+            yield "i" "ZeroNet Version: %s (rev%s)" % (config.version, config.rev)
+            yield "i", "Python Version: %s" % sys.version
+            yield "i", "Platform: %s" % sys.platform
+            yield
+            
+            yield "1", "CryptBitcoin"
+            yield "1", "CryptHash"
+            yield "1", "Msgpack"
+            yield "1", "Db"
+            yield "1", "Compression"
+        else:
+            yield "3", "Unknown remote path /Benchmark/%s" % arg
+            yield
+
+        yield
+        if arg != None:
+            yield "i", "Done. Total: %.2fs" % (time.time() - t)
+            yield
+            yield "1", "Return to /Benchmark", "/Benchmark"
+        yield "1", "Return home", "/"
+    
+
+    def benchmarkCryptBitcoin(self):
+        yield "i", "ZeroNet Benchmark - CryptBitcoin"
+        yield
+        yield "3", "Unimplemented!"
+
+    def benchmarkCryptHash(self):
+        yield "i", "ZeroNet Benchmark - CryptBitcoin"
+        yield
+        yield "3", "Unimplemented!"
+
+    def benchmarkMsgpack(self):
+        yield "i", "ZeroNet Benchmark - CryptBitcoin"
+        yield
+        yield "3", "Unimplemented!"
+
+    def benchmarkDb(self):
+        yield "i", "ZeroNet Benchmark - CryptBitcoin"
+        yield
+        yield "3", "Unimplemented!"
+
+
+    def benchmarkCompression(self):
+        yield "i", "ZeroNet Benchmark - CryptBitcoin"
+        yield
+        yield "3", "Unimplemented!"
+
+
+    def actionGcCollect(self):
+        yield "i", "ZeroNet GcCollect"
+        yield
+
+        import gc
+        #self.sendHeader()
+        yield "i", str(gc.collect())
+
+        yield
+        yield "i", "Return home", "/"
+
+
+    def getObjSize(self, obj, hpy=None):
+        if hpy:
+            return float(hpy.iso(obj).domisize) / 1024
+        else:
+            return 0
 
 
 @PluginManager.registerTo("UiRequest")
