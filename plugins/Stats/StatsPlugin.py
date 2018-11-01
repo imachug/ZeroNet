@@ -624,10 +624,12 @@ class GopherHandler(object):
             yield "3", "Unknown remote path /Benchmark/%s" % arg
             yield
 
+        yield
+        if arg != None:
+            yield "i", "Done. Total: %.2fs" % (time.time() - t)
             yield
-            if arg != None:
-                yield "1", "Return to /Benchmark", "/Benchmark"
-            yield "1", "Return home", "/"
+            yield "1", "Return to /Benchmark", "/Benchmark"
+        yield "1", "Return home", "/"
     
 
     def benchmarkCryptBitcoin(self):
