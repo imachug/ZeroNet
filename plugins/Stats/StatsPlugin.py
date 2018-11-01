@@ -29,47 +29,36 @@ class GopherHandler(object):
         if arg == "Connections":
             for line in self.statsConnections(main):
                 yield line
-            return
         elif arg == "Trackers":
             for line in self.statsTrackers():
                 yield line
-            return
         elif arg == "SharedTrackers":
             for line in self.statsSharedTrackers():
                 yield line
-            return
         elif arg == "Tor":
             for line in self.statsTor(main):
                 yield line
-            return
         elif arg == "Db":
             for line in self.statsDb():
                 yield line
-            return
         elif arg == "Sites":
             for line in self.statsSites():
                 yield line
-            return
         elif arg == "BigFiles":
             for line in self.statsBigFiles():
                 yield line
-            return
         elif arg == "SentCommands":
             for line in self.statsSentCommands(main):
                 yield line
-            return
         elif arg == "ReceivedCommands":
             for line in self.statsReceivedCommands(main):
                 yield line
-            return
         elif arg == "Objects":
             for line in self.statsObjects():
                 yield line
-            return
         elif arg == "Classes":
             for line in self.statsClasses(arg2):
                 yield line
-            return
         elif arg == None:
             yield "i", "ZeroNet Stats"
             yield 
@@ -159,7 +148,7 @@ class GopherHandler(object):
             yield "i", "ip: %s:%s" % (connection.ip, connection.port)
             yield "i", "open: %s" % connection.handshake.get("port_opened")
             yield "i", "crypt: %s" % connection.crypt
-            #yield "i", "ping: %6.3f" % connection.last_ping_delay # TODO
+            #yield "i", "ping: %6.3f" % connection.last_ping_delay # TODO, FIXME
             yield "i", "buf: %s" % connection.incomplete_buff_recv
             yield "i", "bad: %s" % connection.bad_actions
             yield "i", "idle: since %s" % max(connection.last_send_time, connection.last_recv_time)
@@ -402,44 +391,34 @@ class GopherHandler(object):
         if arg == "Greenlets":
             for line in self.statsClassesGreenlets():
                 yield line
-            return
         elif arg == "Workers":
             for line in self.statsClassesWorkers():
                 yield line
-            return
         elif arg == "Connections":
             for line in self.statsClassesConnections():
                 yield line
-            return
         elif arg == "Sockets":
             for line in self.statsClassesSockets():
                 yield line
-            return
         elif arg == "MsgpackUnpacker":
             for line in self.statsClassesMsgpackUnpacker():
                 yield line
-            return
         elif arg == "Sites":
             for line in self.statsClassesSites():
                 yield line
-            return
         elif arg == "Loggers":
             for line in self.statsClassesLoggers():
                 yield line
-            return
         elif arg == "UiRequests":
             for line in self.statsClassesUiRequests():
                 yield line
-            return
         elif arg == "Peers":
             for line in self.statsClassesPeers():
                 yield line
-            return
         elif arg == "Modules":
             for line in self.statsClassesModules():
                 yield line
-            return
-        elif arg == "None":
+        elif arg == None:
             class_count = {}
             for obj in gc.get_objects():
                 obj_type = str(type(obj))
