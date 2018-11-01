@@ -374,7 +374,7 @@ class GopherHandler(object):
         yield
 
         for obj, stat in sorted(obj_count.items(), key=lambda x: x[1][0], reverse=True):  # Sorted by count
-            yield "i", " - %.1fkB = %s x %s" % (stat[1], stat[0], cgi.escape(obj))
+            yield "i", " - %.1fkB = %s x %s" % (stat[1], stat[0], obj)
         yield
 
 
@@ -458,7 +458,7 @@ class GopherHandler(object):
             yield
 
             for obj, stat in sorted(class_count.items(), key=lambda x: x[1][0], reverse=True):  # Sorted by count
-                yield "i", " - %.1fkb = %s x %s" % (stat[1], stat[0], cgi.escape(obj))
+                yield "i", " - %.1fkb = %s x %s" % (stat[1], stat[0], obj)
             yield
         else:
             yield "3", "Unknown remote path /Stats/Classes/%s" % arg
@@ -485,7 +485,7 @@ class GopherHandler(object):
         yield
 
         for obj in objs:
-            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), cgi.escape(repr(obj).encode("utf8")))
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj).encode("utf8"))
         
         yield
 
@@ -504,7 +504,7 @@ class GopherHandler(object):
         objs = [obj for obj in gc.get_objects() if isinstance(obj, Worker)]
         yield "i", "ZeroNet Stats - Classes in memory - Workers (%s)" % len(objs)
         for obj in objs:
-            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), cgi.escape(repr(obj)))
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj))
 
         yield
 
@@ -523,7 +523,7 @@ class GopherHandler(object):
         objs = [obj for obj in gc.get_objects() if isinstance(obj, Connection)]
         yield "i", "ZeroNet Stats - Classes in memory - Connections (%s)" % len(objs)
         for obj in objs:
-            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), cgi.escape(repr(obj)))
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj))
         
         yield
 
@@ -542,7 +542,7 @@ class GopherHandler(object):
         objs = [obj for obj in gc.get_objects() if isinstance(obj, socket)]
         yield "i", "ZeroNet Stats - Classes in memory - Sockets (%s)" % len(objs)
         for obj in objs:
-            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), cgi.escape(repr(obj)))
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj))
         
         yield
 
@@ -561,7 +561,7 @@ class GopherHandler(object):
         objs = [obj for obj in gc.get_objects() if isinstance(obj, Unpacker)]
         yield "i",  "ZeroNet Stats - Classes in memory - Msgpack unpacker (%s)" % len(objs)
         for obj in objs:
-            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), cgi.escape(repr(obj)))
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj))
         
         yield
 
@@ -580,7 +580,7 @@ class GopherHandler(object):
         objs = [obj for obj in gc.get_objects() if isinstance(obj, Site)]
         yield "ZeroNet Stats - Classes in memory - Sites (%s)" % len(objs)
         for obj in objs:
-            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), cgi.escape(repr(obj)))
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj))
         
         yield
 
@@ -598,7 +598,7 @@ class GopherHandler(object):
         objs = [obj for obj in gc.get_objects() if isinstance(obj, self.server.log.__class__)]
         yield "i", "ZeroNet Stats - Classes in memory - Loggers (%s)" % len(objs)
         for obj in objs:
-            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), cgi.escape(repr(obj.name)))
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj.name))
         
         yield
 
@@ -616,7 +616,7 @@ class GopherHandler(object):
         objs = [obj for obj in gc.get_objects() if isinstance(obj, UiRequest)]
         yield "i", "ZeroNet Stats - Classes in memory - UiRequests (%s)" % len(objs)
         for obj in objs:
-            yield "i", " - %.1fkb: %s<br>" % (self.getObjSize(obj, hpy), cgi.escape(repr(obj)))
+            yield "i", " - %.1fkb: %s<br>" % (self.getObjSize(obj, hpy), repr(obj))
         
         yield
 
@@ -635,7 +635,7 @@ class GopherHandler(object):
         objs = [obj for obj in gc.get_objects() if isinstance(obj, Peer)]
         yield "i", "ZeroNet Stats - Classes in memory - Peers (%s)" % len(objs)
         for obj in objs:
-            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), cgi.escape(repr(obj)))
+            yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj))
         
         yield
 
@@ -654,7 +654,7 @@ class GopherHandler(object):
         objs.sort()
         yield "i", "ZeroNet Stats - Classes in memory - Modules (%s)" % len(objs)
         for module_name, module in objs:
-            yield "i", " - %.3fkb: %s %s" % (self.getObjSize(module, hpy), module_name, cgi.escape(repr(module)))
+            yield "i", " - %.3fkb: %s %s" % (self.getObjSize(module, hpy), module_name, repr(module))
         
         yield
 
