@@ -13,10 +13,6 @@ class GopherHandler(object):
     def actionStats(self, arg=None, arg2=None):
         import gc
         import sys
-        #from Ui import UiRequest
-        from Db import Db
-        from Crypt import CryptConnection
-
 
         if "Multiuser" in PluginManager.plugin_manager.plugin_names and not config.multiuser_local:
             yield "3", "This function is disabled on this proxy"
@@ -122,11 +118,6 @@ class GopherHandler(object):
 
 
     def statsConnections(self, main):
-        import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
-
         yield "i", "ZeroNet Stats - Connections (%s, total made: %s, in: %s, out: %s)" % (
             len(main.file_server.connections), main.file_server.last_connection_id, main.file_server.num_incoming, main.file_server.num_outgoing
         )
@@ -166,10 +157,7 @@ class GopherHandler(object):
 
 
     def statsTrackers(self):
-        import gc
         import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         yield "i", "ZeroNet Stats - Trackers"
         yield
@@ -183,12 +171,7 @@ class GopherHandler(object):
 
 
     def statsSharedTrackers(self):
-        import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
-
-        if "AnnounceShare" in PluginManager.plugin_manager.plugin_names:
+        if "AnnounceShare" in  PluginManager.plugin_manager.plugin_names:
             yield "i", "ZeroNet Stats - Shared trackers"
             yield
 
@@ -207,11 +190,6 @@ class GopherHandler(object):
 
 
     def statsTor(self, main):
-        import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
-
         yield "i", "ZeroNet Stats - Tor hidden services (status: %s)" % main.file_server.tor_manager.status
         yield
 
@@ -221,10 +199,7 @@ class GopherHandler(object):
     
 
     def statsDb(self):
-        import gc
-        import sys
         from Db import Db
-        from Crypt import CryptConnection
 
         yield "i", "ZeroNet Stats - Db"
         yield
@@ -244,11 +219,6 @@ class GopherHandler(object):
 
 
     def statsSites(self):
-        import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
-
         yield "i", "ZeroNet Stats - Sites"
         yield
         
@@ -287,11 +257,6 @@ class GopherHandler(object):
 
 
     def statsBigFiles(self):
-        import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
-
         yield "i", "ZeroNet Stats - Big Files"
         yield
 
@@ -320,11 +285,6 @@ class GopherHandler(object):
 
 
     def statsSentCommands(self, main):
-        import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
-
         yield "i", "ZeroNet Stats - Sent commands"
         yield
 
@@ -335,11 +295,6 @@ class GopherHandler(object):
 
     
     def statsReceivedCommands(self, main):
-        import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
-
         yield "i", "ZeroNet Stats - Received Commands"
         yield
 
@@ -351,8 +306,6 @@ class GopherHandler(object):
     def statsObjects(self):
         import gc
         import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         if not config.debug:
             yield "3", "Not in debug mode"
@@ -381,8 +334,6 @@ class GopherHandler(object):
     def statsClasses(self, arg=None):
         import gc
         import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         if not config.debug:
             yield "3", "Not in debug mode"
@@ -470,9 +421,6 @@ class GopherHandler(object):
 
     def statsClassesGreenlets(self, hpy):
         import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         if not config.debug:
             yield "3", "Not in debug mode"
@@ -492,9 +440,6 @@ class GopherHandler(object):
 
     def statsClassesWorkers(self, hpy):
         import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         if not config.debug:
             yield "3", "Not in debug mode"
@@ -511,9 +456,6 @@ class GopherHandler(object):
     
     def statsClassesConnections(self, hpy):
         import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         if not config.debug:
             yield "3", "Not in debug mode"
@@ -530,9 +472,6 @@ class GopherHandler(object):
 
     def statsClassesSockets(self, hpy):
         import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         if not config.debug:
             yield "3", "Not in debug mode"
@@ -549,9 +488,6 @@ class GopherHandler(object):
 
     def statsClassesMsgpackUnpacker(self, hpy):
         import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         if not config.debug:
             yield "3", "Not in debug mode"
@@ -568,9 +504,6 @@ class GopherHandler(object):
 
     def statsClassesSites(self, hpy):
         import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         if not config.debug:
             yield "3", "Not in debug mode"
@@ -587,15 +520,12 @@ class GopherHandler(object):
 
     def statsClassesLoggers(self, hpy):
         import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         if not config.debug:
             yield "3", "Not in debug mode"
             return
 
-        objs = [obj for obj in gc.get_objects() if isinstance(obj, self.server.log.__class__)]
+        objs = [obj for obj in gc.get_objects() if isinstance(obj, self.server.log.__class__)] # TODO, FIXME
         yield "i", "ZeroNet Stats - Classes in memory - Loggers (%s)" % len(objs)
         for obj in objs:
             yield "i", " - %.1fkb: %s" % (self.getObjSize(obj, hpy), repr(obj.name))
@@ -605,9 +535,7 @@ class GopherHandler(object):
 
     def statsClassesUiRequests(self, hpy):
         import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
+        from Ui import UiRequest
 
         if not config.debug:
             yield "3", "Not in debug mode"
@@ -623,9 +551,6 @@ class GopherHandler(object):
 
     def statsClassesPeers(self, hpy):
         import gc
-        import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         if not config.debug:
             yield "3", "Not in debug mode"
@@ -643,8 +568,6 @@ class GopherHandler(object):
     def statsClassesModules(self, hpy):
         import gc
         import sys
-        from Db import Db
-        from Crypt import CryptConnection
 
         if not config.debug:
             yield "3", "Not in debug mode"
