@@ -30,23 +30,3 @@ def match(pattern, *args, **kwargs):
         if isSafePattern(pattern):
             cached_patterns[pattern] = re.compile(pattern)
             return cached_patterns[pattern].match(*args, **kwargs)
-
-
-def sub(pattern, *args, **kwargs):
-    cached_pattern = cached_patterns.get(pattern)
-    if cached_pattern:
-        return cached_pattern.sub(*args, **kwargs)
-    else:
-        if isSafePattern(pattern):
-            cached_patterns[pattern] = re.compile(pattern)
-            return cached_patterns[pattern].sub(*args, **kwargs)
-
-
-def finditer(pattern, *args, **kwargs):
-    cached_pattern = cached_patterns.get(pattern)
-    if cached_pattern:
-        return cached_pattern.finditer(*args, **kwargs)
-    else:
-        if isSafePattern(pattern):
-            cached_patterns[pattern] = re.compile(pattern)
-            return cached_patterns[pattern].finditer(*args, **kwargs)
