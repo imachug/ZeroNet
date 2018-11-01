@@ -4,8 +4,12 @@ import os
 import json
 
 from Plugin import PluginManager
-from Config import config
-from Site import SiteManager
+
+@PluginManager.afterLoad
+def importPluginnedClasses():
+    from Config import config
+    from Site import SiteManager
+    global config, SiteManager
 
 
 @PluginManager.registerTo("GopherHandler")
