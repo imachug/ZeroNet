@@ -582,6 +582,81 @@ class GopherHandler(object):
         yield
 
 
+    def actionBenchmark(self, arg=None):
+        import sys
+        import gc
+        from contextlib import contextmanager
+
+        if "Multiuser" in PluginManager.plugin_manager.plugin_names and not config.multiuser_local:
+            yield "3", "This function is disabled on this proxy"
+            return
+
+        t = time.time();
+
+        if arg == "CryptBitcoin":
+            for line in self.benchmarkCryptBitcoin():
+                yield line
+        elif arg == "CryptHash":
+            for line in self.benchmarkCryptHash():
+                yield line
+        elif arg == "Msgpack":
+            for line in self.benchmarkMsgpack():
+                yield line
+        elif arg == "Db":
+            for line in self.benchmarkDb():
+                yield line
+        elif arg == "Compression":
+            for line in self.benchmarkCompression():
+                yield line
+        elif arg == None:
+            yield "i", "ZeroNet Benchmark"
+            yield "i" "ZeroNet Version: %s (rev%s)" % (config.version, config.rev)
+            yield "i", "Python Version: %s" % sys.version
+            yield "i", "Platform: %s" % sys.platform
+            yield
+            
+            yield "1", "CryptBitcoin"
+            yield "1", "CryptHash"
+            yield "1", "Msgpack"
+            yield "1", "Db"
+            yield "1", "Compression"
+        else:
+            yield "3", "Unknown remote path /Benchmark/%s" % arg
+            yield
+
+            yield
+            if arg != None:
+                yield "1", "Return to /Benchmark", "/Benchmark"
+            yield "1", "Return home", "/"
+    
+
+    def benchmarkCryptBitcoin(self):
+        yield "i", "ZeroNet Benchmark - CryptBitcoin"
+        yield
+        yield "3", "Unimplemented!"
+
+    def benchmarkCryptHash(self):
+        yield "i", "ZeroNet Benchmark - CryptBitcoin"
+        yield
+        yield "3", "Unimplemented!"
+
+    def benchmarkMsgpack(self):
+        yield "i", "ZeroNet Benchmark - CryptBitcoin"
+        yield
+        yield "3", "Unimplemented!"
+
+    def benchmarkDb(self):
+        yield "i", "ZeroNet Benchmark - CryptBitcoin"
+        yield
+        yield "3", "Unimplemented!"
+
+
+    def benchmarkCompression(self):
+        yield "i", "ZeroNet Benchmark - CryptBitcoin"
+        yield
+        yield "3", "Unimplemented!"
+
+
     def actionGcCollect(self):
         yield "i", "ZeroNet GcCollect"
         yield
