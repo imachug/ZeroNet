@@ -387,36 +387,44 @@ class GopherHandler(object):
         if not config.debug:
             yield "3", "Not in debug mode"
             return
+
+        hpy = None
+        #if self.get.get("size") == "1":  # Calc obj size
+        try:
+            import guppy
+            hpy = guppy.hpy()
+        except:
+            pass
         
         if arg == "Greenlets":
-            for line in self.statsClassesGreenlets():
+            for line in self.statsClassesGreenlets(hpy):
                 yield line
         elif arg == "Workers":
-            for line in self.statsClassesWorkers():
+            for line in self.statsClassesWorkers(hpy):
                 yield line
         elif arg == "Connections":
-            for line in self.statsClassesConnections():
+            for line in self.statsClassesConnections(hpy):
                 yield line
         elif arg == "Sockets":
-            for line in self.statsClassesSockets():
+            for line in self.statsClassesSockets(hpy):
                 yield line
         elif arg == "MsgpackUnpacker":
-            for line in self.statsClassesMsgpackUnpacker():
+            for line in self.statsClassesMsgpackUnpacker(hpy):
                 yield line
         elif arg == "Sites":
-            for line in self.statsClassesSites():
+            for line in self.statsClassesSites(hpy):
                 yield line
         elif arg == "Loggers":
-            for line in self.statsClassesLoggers():
+            for line in self.statsClassesLoggers(hpy):
                 yield line
         elif arg == "UiRequests":
-            for line in self.statsClassesUiRequests():
+            for line in self.statsClassesUiRequests(hpy):
                 yield line
         elif arg == "Peers":
-            for line in self.statsClassesPeers():
+            for line in self.statsClassesPeers(hpy):
                 yield line
         elif arg == "Modules":
-            for line in self.statsClassesModules():
+            for line in self.statsClassesModules(hpy):
                 yield line
         elif arg == None:
             class_count = {}
@@ -460,7 +468,7 @@ class GopherHandler(object):
             yield "1", "Return to /Stats/Classes", "/Stats/Classes"
     
 
-    def statsClassesGreenlets(self):
+    def statsClassesGreenlets(self, hpy):
         import gc
         import sys
         from Db import Db
@@ -482,7 +490,7 @@ class GopherHandler(object):
         yield
 
 
-    def statsClassesWorkers(self):
+    def statsClassesWorkers(self, hpy):
         import gc
         import sys
         from Db import Db
@@ -501,7 +509,7 @@ class GopherHandler(object):
         yield
 
     
-    def statsClassesConnections(self):
+    def statsClassesConnections(self, hpy):
         import gc
         import sys
         from Db import Db
@@ -520,7 +528,7 @@ class GopherHandler(object):
         yield
 
 
-    def statsClassesSockets(self):
+    def statsClassesSockets(self, hpy):
         import gc
         import sys
         from Db import Db
@@ -539,7 +547,7 @@ class GopherHandler(object):
         yield
 
 
-    def statsClassesMsgpackUnpacker(self):
+    def statsClassesMsgpackUnpacker(self, hpy):
         import gc
         import sys
         from Db import Db
@@ -558,7 +566,7 @@ class GopherHandler(object):
         yield
 
 
-    def statsClassesSites(self):
+    def statsClassesSites(self, hpy):
         import gc
         import sys
         from Db import Db
@@ -577,7 +585,7 @@ class GopherHandler(object):
         yield
 
 
-    def statsClassesLoggers(self):
+    def statsClassesLoggers(self, hpy):
         import gc
         import sys
         from Db import Db
@@ -595,7 +603,7 @@ class GopherHandler(object):
         yield
 
 
-    def statsClassesLoggers(self):
+    def statsClassesUiRequests(self, hpy):
         import gc
         import sys
         from Db import Db
@@ -613,7 +621,7 @@ class GopherHandler(object):
         yield
 
 
-    def statsClassesPeers(self):
+    def statsClassesPeers(self, hpy):
         import gc
         import sys
         from Db import Db
@@ -632,7 +640,7 @@ class GopherHandler(object):
         yield
 
 
-    def statsClassesModules(self):
+    def statsClassesModules(self, hpy):
         import gc
         import sys
         from Db import Db
