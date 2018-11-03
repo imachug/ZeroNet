@@ -1,0 +1,3 @@
+[submodule "plugins/Gopher"]
+    path = plugins/Gopher
+    url = https://github.com/imachug/Plugin-Gopher.git
