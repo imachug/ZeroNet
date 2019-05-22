@@ -1,0 +1,3 @@
+[submodule "plugins/Ark"]
+	path = plugins/Ark
+	url = https://github.com/imachug/Plugin-Ark.git
