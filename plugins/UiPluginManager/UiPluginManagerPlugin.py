@@ -42,9 +42,7 @@ class UiRequestPlugin(object):
         if not extra_headers:
             extra_headers = {}
 
-        script_nonce = self.getScriptNonce()
-
-        self.sendHeader(extra_headers=extra_headers, script_nonce=script_nonce)
+        self.sendHeader(extra_headers=extra_headers)
         site = self.server.site_manager.get(config.homepage)
         return iter([super(UiRequestPlugin, self).renderWrapper(
             site, path, "uimedia/plugins/plugin_manager/plugin_manager.html",
