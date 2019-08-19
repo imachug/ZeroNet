@@ -47,7 +47,6 @@ class UiRequest(object):
 
         self.start_response = start_response  # Start response function
         self.user = None
-        self.script_nonce = None  # Nonce for script tags in wrapper html
 
     def learnHost(self, host):
         self.server.allowed_hosts.add(host)
@@ -142,15 +141,7 @@ class UiRequest(object):
             return self.actionSiteAdd()
         # Site media wrapper
         else:
-            if self.get.get("wrapper_nonce"):
-                if self.get["wrapper_nonce"] in self.server.wrapper_nonces:
-                    self.server.wrapper_nonces.remove(self.get["wrapper_nonce"])
-                    return self.actionSiteMedia("/media" + path)  # Only serve html files with frame
-                else:
-                    self.server.log.warning("Invalid wrapper nonce: %s" % self.get["wrapper_nonce"])
-                    body = self.actionWrapper(path)
-            else:
-                body = self.actionWrapper(path)
+            body = self.actionWrapper(path)
             if body:
                 return body
             else:
@@ -234,18 +225,8 @@ class UiRequest(object):
         else:
             return referer
 
-    def isScriptNonceSupported(self):
-        user_agent = self.env.get("HTTP_USER_AGENT")
-        if "Edge/" in user_agent:
-            is_script_nonce_supported = False
-        elif "Safari/" in user_agent and "Chrome/" not in user_agent:
-            is_script_nonce_supported = False
-        else:
-            is_script_nonce_supported = True
-        return is_script_nonce_supported
-
     # Send response headers
-    def sendHeader(self, status=200, content_type="text/html", noscript=False, allow_ajax=False, script_nonce=None, extra_headers=[]):
+    def sendHeader(self, status=200, content_type="text/html", noscript=False, allow_ajax=False, extra_headers=[]):
         headers = {}
         headers["Version"] = "HTTP/1.1"
         headers["Connection"] = "Keep-Alive"
@@ -258,8 +239,6 @@ class UiRequest(object):
 
         if noscript:
             headers["Content-Security-Policy"] = "default-src 'none'; sandbox allow-top-navigation allow-forms; img-src 'self'; font-src 'self'; media-src 'self'; style-src 'self' 'unsafe-inline';"
-        elif script_nonce and self.isScriptNonceSupported():
-            headers["Content-Security-Policy"] = "default-src 'none'; script-src 'nonce-{0}'; img-src 'self' blob:; style-src 'self' blob: 'unsafe-inline'; connect-src *; frame-src 'self' blob:".format(script_nonce)
 
         if allow_ajax:
             headers["Access-Control-Allow-Origin"] = "null"
@@ -312,65 +291,79 @@ class UiRequest(object):
     def actionWrapper(self, path, extra_headers=None):
         if not extra_headers:
             extra_headers = {}
-        script_nonce = self.getScriptNonce()
 
-        match = re.match(r"/(?P<address>[A-Za-z0-9\._-]+)(?P<inner_path>/.*|$)", path)
+        try:
+            path_parts = self.parsePath("/media" + path)
+        except SecurityError as err:
+            return self.error403(err)
+
         just_added = False
-        if match:
-            address = match.group("address")
-            inner_path = match.group("inner_path").lstrip("/")
+        address = path_parts["address"]
+        inner_path = path_parts["inner_path"].lstrip("/")
 
-            if not inner_path or path.endswith("/"):  # It's a directory
-                content_type = self.getContentType("index.html")
-            else:  # It's a file
-                content_type = self.getContentType(inner_path)
+        if not inner_path or path.endswith("/"):  # It's a directory
+            content_type = self.getContentType("index.html")
+        else:  # It's a file
+            content_type = self.getContentType(inner_path)
 
-            is_html_file = "html" in content_type or "xhtml" in content_type
+        is_html_file = "html" in content_type or "xhtml" in content_type
 
-            if not is_html_file:
-                return self.actionSiteMedia("/media" + path)  # Serve non-html files without wrapper
+        if not is_html_file:
+            return self.actionSiteMedia("/media" + path)  # Serve non-html files without wrapper
 
-            if self.isAjaxRequest():
-                return self.error403("Ajax request not allowed to load wrapper")  # No ajax allowed on wrapper
+        if self.isWebSocketRequest():
+            return self.error403("WebSocket requests are not supported, use HTTP")  # No websocket
 
-            if self.isWebSocketRequest():
-                return self.error403("WebSocket request not allowed to load wrapper")  # No websocket
+        if "prefetch" in self.env.get("HTTP_X_MOZ", "") or "prefetch" in self.env.get("HTTP_PURPOSE", ""):
+            return self.error403("Prefetch is not allowed to load wrapper")
 
-            if "text/html" not in self.env.get("HTTP_ACCEPT", ""):
-                return self.error403("Invalid Accept header to load wrapper")
-            if "prefetch" in self.env.get("HTTP_X_MOZ", "") or "prefetch" in self.env.get("HTTP_PURPOSE", ""):
-                return self.error403("Prefetch not allowed to load wrapper")
+        site = SiteManager.site_manager.get(address)
 
+        if site and site.content_manager.contents.get("content.json"):
+            title = site.content_manager.contents["content.json"]["title"]
+        else:
+            title = "Loading %s..." % address
             site = SiteManager.site_manager.get(address)
+            if site:  # Already added, but not downloaded
+                if time.time() - site.announcer.time_last_announce > 5:
+                    site.log.debug("Reannouncing site...")
+                    gevent.spawn(site.update, announce=True)
+            else:  # If not added yet
+                site = SiteManager.site_manager.need(address)
+                just_added = True
 
-            if site and site.content_manager.contents.get("content.json"):
-                title = site.content_manager.contents["content.json"]["title"]
-            else:
-                title = "Loading %s..." % address
-                site = SiteManager.site_manager.get(address)
-                if site:  # Already added, but not downloaded
-                    if time.time() - site.announcer.time_last_announce > 5:
-                        site.log.debug("Reannouncing site...")
-                        gevent.spawn(site.update, announce=True)
-                else:  # If not added yet
-                    site = SiteManager.site_manager.need(address)
-                    just_added = True
+            if not site:
+                return False
 
-                if not site:
-                    return False
+        min_last_announce = (time.time() - site.announcer.time_last_announce) / 60
+        if min_last_announce > 60 and site.isServing() and not just_added:
+            site.log.debug("Site requested, but not announced recently (last %.0fmin ago). Updating..." % min_last_announce)
+            gevent.spawn(site.update, announce=True)
 
-            self.sendHeader(extra_headers=extra_headers, script_nonce=script_nonce)
+        if self.isAjaxRequest():
+            # Raw data
+            return self.actionSiteMedia("/media" + path)
 
-            min_last_announce = (time.time() - site.announcer.time_last_announce) / 60
-            if min_last_announce > 60 and site.isServing() and not just_added:
-                site.log.debug("Site requested, but not announced recently (last %.0fmin ago). Updating..." % min_last_announce)
-                gevent.spawn(site.update, announce=True)
+        prefix = open("src/Ui/template/prefix.html", "rb").read()
+        return self.actionSiteMedia("/media" + path, prefix=prefix)
 
-            return iter([self.renderWrapper(site, path, inner_path, title, extra_headers, script_nonce=script_nonce)])
-            # Make response be sent at once (see https://github.com/HelloZeroNet/ZeroNet/issues/1092)
+    # Generate a new wrapper nonce to create websocket
+    def actionWrapperNonce(self):
+        origin = self.env.get("HTTP_REFERER", "")
 
-        else:  # Bad url
-            return False
+        try:
+            path_parts = self.parsePath(origin)
+        except SecurityError as err:
+            return self.error403(err)
+
+        site = SiteManager.site_manager.get(path_parts["address"])
+        if site:
+            wrapper_nonce = CryptHash.random()
+            site.wrapper_nonces.add(wrapper_nonce)
+            self.sendHeader()
+            return iter([wrapper_nonce])
+        else:
+            return self.error400("No such site")
 
     def getSiteUrl(self, address):
         if self.isProxyRequest():
@@ -392,117 +385,6 @@ class UiRequest(object):
             site.log.debug("%s peers added by query string" % num_added)
 
         return query_string
-
-    def renderWrapper(self, site, path, inner_path, title, extra_headers, show_loadingscreen=None, script_nonce=None):
-        file_inner_path = inner_path
-        if not file_inner_path:
-            file_inner_path = "index.html"  # If inner path defaults to index.html
-
-        if file_inner_path.endswith("/"):
-            file_inner_path = file_inner_path + "index.html"
-
-        address = re.sub("/.*", "", path.lstrip("/"))
-        if self.isProxyRequest() and (not path or "/" in path[1:]):
-            if self.env["HTTP_HOST"] == "zero":
-                root_url = "/" + address + "/"
-                file_url = "/" + address + "/" + inner_path
-            else:
-                file_url = "/" + inner_path
-                root_url = "/"
-
-        else:
-            file_url = "/" + address + "/" + inner_path
-            root_url = "/" + address + "/"
-
-        # Wrapper variable inits
-        body_style = ""
-        meta_tags = ""
-        postmessage_nonce_security = "false"
-
-        wrapper_nonce = self.getWrapperNonce()
-        inner_query_string = self.processQueryString(site, self.env.get("QUERY_STRING", ""))
-
-        if inner_query_string:
-            inner_query_string = "?%s&wrapper_nonce=%s" % (inner_query_string, wrapper_nonce)
-        elif "?" in inner_path:
-            inner_query_string = "&wrapper_nonce=%s" % wrapper_nonce
-        else:
-            inner_query_string = "?wrapper_nonce=%s" % wrapper_nonce
-
-        if self.isProxyRequest():  # Its a remote proxy request
-            if self.env["REMOTE_ADDR"] == "127.0.0.1":  # Local client, the server address also should be 127.0.0.1
-                server_url = "http://127.0.0.1:%s" % self.env["SERVER_PORT"]
-            else:  # Remote client, use SERVER_NAME as server's real address
-                server_url = "http://%s:%s" % (self.env["SERVER_NAME"], self.env["SERVER_PORT"])
-            homepage = "http://zero/" + config.homepage
-        else:  # Use relative path
-            server_url = ""
-            homepage = "/" + config.homepage
-
-        user = self.getCurrentUser()
-        if user:
-            theme = user.settings.get("theme", "light")
-        else:
-            theme = "light"
-
-        themeclass = "theme-%-6s" % re.sub("[^a-z]", "", theme)
-
-        if site.content_manager.contents.get("content.json"):  # Got content.json
-            content = site.content_manager.contents["content.json"]
-            if content.get("background-color"):
-                background_color = content.get("background-color-%s" % theme, content["background-color"])
-                body_style += "background-color: %s;" % html.escape(background_color)
-            if content.get("viewport"):
-                meta_tags += '<meta name="viewport" id="viewport" content="%s">' % html.escape(content["viewport"])
-            if content.get("favicon"):
-                meta_tags += '<link rel="icon" href="%s%s">' % (root_url, html.escape(content["favicon"]))
-            if content.get("postmessage_nonce_security"):
-                postmessage_nonce_security = "true"
-
-        sandbox_permissions = ""
-
-        if "NOSANDBOX" in site.settings["permissions"]:
-            sandbox_permissions += " allow-same-origin"
-
-        if show_loadingscreen is None:
-            show_loadingscreen = not site.storage.isFile(file_inner_path)
-
-        return self.render(
-            "src/Ui/template/wrapper.html",
-            server_url=server_url,
-            inner_path=inner_path,
-            file_url=re.escape(file_url),
-            file_inner_path=re.escape(file_inner_path),
-            address=site.address,
-            title=html.escape(title),
-            body_style=body_style,
-            meta_tags=meta_tags,
-            query_string=re.escape(inner_query_string),
-            wrapper_key=site.settings["wrapper_key"],
-            ajax_key=site.settings["ajax_key"],
-            wrapper_nonce=wrapper_nonce,
-            postmessage_nonce_security=postmessage_nonce_security,
-            permissions=json.dumps(site.settings["permissions"]),
-            show_loadingscreen=json.dumps(show_loadingscreen),
-            sandbox_permissions=sandbox_permissions,
-            rev=config.rev,
-            lang=config.language,
-            homepage=homepage,
-            themeclass=themeclass,
-            script_nonce=script_nonce
-        )
-
-    # Create a new wrapper nonce that allows to get one html file without the wrapper
-    def getWrapperNonce(self):
-        wrapper_nonce = CryptHash.random()
-        self.server.wrapper_nonces.append(wrapper_nonce)
-        return wrapper_nonce
-
-    def getScriptNonce(self):
-        if not self.script_nonce:
-            self.script_nonce = CryptHash.random(encoding="base64")
-
-        return self.script_nonce
 
     # Create a new wrapper nonce that allows to get one site
     def getAddNonce(self):
@@ -539,7 +421,7 @@ class UiRequest(object):
             return None
 
     # Serve a media for site
-    def actionSiteMedia(self, path, header_length=True, header_noscript=False):
+    def actionSiteMedia(self, path, header_length=True, header_noscript=False, prefix=b""):
         try:
             path_parts = self.parsePath(path)
         except SecurityError as err:
@@ -572,7 +454,15 @@ class UiRequest(object):
         file_size = helper.getFilesize(file_path)
 
         if file_size is not None:
-            return self.actionFile(file_path, header_length=header_length, header_noscript=header_noscript, header_allow_ajax=header_allow_ajax, file_size=file_size, path_parts=path_parts)
+            return self.actionFile(
+                file_path,
+                header_length=header_length,
+                header_noscript=header_noscript,
+                header_allow_ajax=header_allow_ajax,
+                file_size=file_size,
+                path_parts=path_parts,
+                prefix=prefix
+            )
 
         elif os.path.isdir(file_path):  # If this is actually a folder, add "/" and redirect
             if path_parts["inner_path"]:
@@ -592,7 +482,15 @@ class UiRequest(object):
             result = site.needFile(path_parts["inner_path"], priority=15)  # Wait until file downloads
             if result:
                 file_size = helper.getFilesize(file_path)
-                return self.actionFile(file_path, header_length=header_length, header_noscript=header_noscript, header_allow_ajax=header_allow_ajax, file_size=file_size, path_parts=path_parts)
+                return self.actionFile(
+                    file_path,
+                    header_length=header_length,
+                    header_noscript=header_noscript,
+                    header_allow_ajax=header_allow_ajax,
+                    file_size=file_size,
+                    path_parts=path_parts,
+                    prefix=prefix
+                )
             else:
                 self.log.debug("File not found: %s" % path_parts["inner_path"])
                 return self.error404(path_parts["inner_path"])
@@ -652,7 +550,7 @@ class UiRequest(object):
         return block
 
     # Stream a file to client
-    def actionFile(self, file_path, block_size=64 * 1024, send_header=True, header_length=True, header_noscript=False, header_allow_ajax=False, file_size=None, file_obj=None, path_parts=None):
+    def actionFile(self, file_path, block_size=64 * 1024, send_header=True, header_length=True, header_noscript=False, header_allow_ajax=False, file_size=None, file_obj=None, path_parts=None, prefix=b""):
         file_name = os.path.basename(file_path)
 
         if file_size is None:
@@ -687,7 +585,10 @@ class UiRequest(object):
                 else:
                     status = 200
                 self.sendHeader(status, content_type=content_type, noscript=header_noscript, allow_ajax=header_allow_ajax, extra_headers=extra_headers)
+
             if self.env["REQUEST_METHOD"] != "OPTIONS":
+                yield prefix
+
                 if not file_obj:
                     file_obj = open(file_path, "rb")
 
@@ -723,14 +624,16 @@ class UiRequest(object):
                     ws.send(json.dumps({"error": "Invalid origin: %s" % origin}))
                     return self.error403("Invalid origin: %s" % origin)
 
-            # Find site by wrapper_key
-            wrapper_key = self.get["wrapper_key"]
+            # Find site by wrapper_nonce
+            wrapper_nonce = self.get["wrapper_nonce"]
             site = None
             for site_check in list(self.server.sites.values()):
-                if site_check.settings["wrapper_key"] == wrapper_key:
+                if wrapper_nonce in site_check.wrapper_nonces:
+                    site_check.wrapper_nonces.remove(wrapper_nonce)
                     site = site_check
+                    break
 
-            if site:  # Correct wrapper key
+            if site:  # Correct wrapper nonce
                 try:
                     user = self.getCurrentUser()
                 except Exception as err:
@@ -749,9 +652,9 @@ class UiRequest(object):
                     if ui_websocket in site_check.websockets:
                         site_check.websockets.remove(ui_websocket)
                 return "Bye."
-            else:  # No site found by wrapper key
-                ws.send(json.dumps({"error": "Wrapper key not found: %s" % wrapper_key}))
-                return self.error403("Wrapper key not found: %s" % wrapper_key)
+            else:  # No site found by wrapper nonce
+                ws.send(json.dumps({"error": "Wrapper nonce not found: %s" % wrapper_nonce}))
+                return self.error403("Wrapper nonce not found: %s" % wrapper_nonce)
         else:
             self.start_response("400 Bad Request", [])
             return [b"Not a websocket request!"]

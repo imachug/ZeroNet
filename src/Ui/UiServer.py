@@ -78,7 +78,6 @@ class UiServer:
             self.allowed_hosts = set([])
         self.allow_trans_proxy = config.ui_trans_proxy
 
-        self.wrapper_nonces = []
         self.add_nonces = []
         self.websockets = []
         self.site_manager = SiteManager.site_manager
