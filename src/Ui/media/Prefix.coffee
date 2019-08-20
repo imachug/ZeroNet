@@ -16,7 +16,7 @@ class Prefix
 		# Setup ZeroFrame command receiver
 		@gate = new WebsocketGate(@dom)
 		window.parent = {
-			postMessage: @onSiteMessage
+			postMessage: @handleMessage
 		}
 
 
@@ -88,8 +88,18 @@ class Prefix
 		}
 
 
-	onSiteMessage: (message) =>
-		console.log message
+	handleMessage: (message) =>
+		if message.cmd == "innerReady"
+			# Doesn't make sense without an iframe, here just for completeness
+			window.postMessage {cmd: "wrapperOpenedWebsocket"}, "*"
+		else if message.cmd == "innerLoaded" or message.cmd == "wrapperInnerLoaded"
+			# The command name makes little sense without an iframe, but it's
+			# still sometimes useful nevertheless
+			# TODO: check whether this navigation way actually works
+			location.hash = location.hash
+		else
+			console.log message
+			@gate.send message
 
 
 window.Prefix = Prefix

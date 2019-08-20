@@ -55,7 +55,7 @@ class WebsocketGate
 			message.id = @next_message_id
 			@next_message_id += 1
 		if @connected
-			@ws.send(JSON.stringify(message))
+			@iframe.contentWindow.postMessage message, "*"
 		else
 			@log "Not connected, adding message to queue"
 			@message_queue.push(message)
@@ -73,7 +73,7 @@ class WebsocketGate
 
 		# Process messages sent before websocket opened
 		for message in @message_queue
-			@ws.send(JSON.stringify(message))
+			@iframe.contentWindow.postMessage message, "*"
 		@message_queue = []
 
 		if @onOpen? then @onOpen(e)

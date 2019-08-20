@@ -44,161 +44,6 @@
 
 }).call(this);
 
-/* ---- lib/ZeroWebsocket.coffee ---- */
-
-
-(function() {
-  var ZeroWebsocket,
-    bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
-    slice = [].slice;
-
-  ZeroWebsocket = (function() {
-    function ZeroWebsocket(url) {
-      this.onCloseWebsocket = bind(this.onCloseWebsocket, this);
-      this.onErrorWebsocket = bind(this.onErrorWebsocket, this);
-      this.onOpenWebsocket = bind(this.onOpenWebsocket, this);
-      this.log = bind(this.log, this);
-      this.response = bind(this.response, this);
-      this.route = bind(this.route, this);
-      this.onMessage = bind(this.onMessage, this);
-      this.url = url;
-      this.next_message_id = 1;
-      this.waiting_cb = {};
-      this.init();
-    }
-
-    ZeroWebsocket.prototype.init = function() {
-      return this;
-    };
-
-    ZeroWebsocket.prototype.connect = function() {
-      this.ws = new WebSocket(this.url);
-      this.ws.onmessage = this.onMessage;
-      this.ws.onopen = this.onOpenWebsocket;
-      this.ws.onerror = this.onErrorWebsocket;
-      this.ws.onclose = this.onCloseWebsocket;
-      this.connected = false;
-      return this.message_queue = [];
-    };
-
-    ZeroWebsocket.prototype.onMessage = function(e) {
-      var cmd, message;
-      message = JSON.parse(e.data);
-      cmd = message.cmd;
-      if (cmd === "response") {
-        if (this.waiting_cb[message.to] != null) {
-          return this.waiting_cb[message.to](message.result);
-        } else {
-          return this.log("Websocket callback not found:", message);
-        }
-      } else if (cmd === "ping") {
-        return this.response(message.id, "pong");
-      } else {
-        return this.route(cmd, message);
-      }
-    };
-
-    ZeroWebsocket.prototype.route = function(cmd, message) {
-      return this.log("Unknown command", message);
-    };
-
-    ZeroWebsocket.prototype.response = function(to, result) {
-      return this.send({
-        "cmd": "response",
-        "to": to,
-        "result": result
-      });
-    };
-
-    ZeroWebsocket.prototype.cmd = function(cmd, params, cb) {
-      if (params == null) {
-        params = {};
-      }
-      if (cb == null) {
-        cb = null;
-      }
-      return this.send({
-        "cmd": cmd,
-        "params": params
-      }, cb);
-    };
-
-    ZeroWebsocket.prototype.send = function(message, cb) {
-      if (cb == null) {
-        cb = null;
-      }
-      if (message.id == null) {
-        message.id = this.next_message_id;
-        this.next_message_id += 1;
-      }
-      if (this.connected) {
-        this.ws.send(JSON.stringify(message));
-      } else {
-        this.log("Not connected, adding message to queue");
-        this.message_queue.push(message);
-      }
-      if (cb) {
-        return this.waiting_cb[message.id] = cb;
-      }
-    };
-
-    ZeroWebsocket.prototype.log = function() {
-      var args;
-      args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-      return console.log.apply(console, ["[ZeroWebsocket]"].concat(slice.call(args)));
-    };
-
-    ZeroWebsocket.prototype.onOpenWebsocket = function(e) {
-      var i, len, message, ref;
-      this.log("Open");
-      this.connected = true;
-      ref = this.message_queue;
-      for (i = 0, len = ref.length; i < len; i++) {
-        message = ref[i];
-        this.ws.send(JSON.stringify(message));
-      }
-      this.message_queue = [];
-      if (this.onOpen != null) {
-        return this.onOpen(e);
-      }
-    };
-
-    ZeroWebsocket.prototype.onErrorWebsocket = function(e) {
-      this.log("Error", e);
-      if (this.onError != null) {
-        return this.onError(e);
-      }
-    };
-
-    ZeroWebsocket.prototype.onCloseWebsocket = function(e, reconnect) {
-      if (reconnect == null) {
-        reconnect = 10000;
-      }
-      this.log("Closed", e);
-      this.connected = false;
-      if (e && e.code === 1000 && e.wasClean === false) {
-        this.log("Server error, please reload the page", e.wasClean);
-      } else {
-        setTimeout(((function(_this) {
-          return function() {
-            _this.log("Reconnecting...");
-            return _this.connect();
-          };
-        })(this)), reconnect);
-      }
-      if (this.onClose != null) {
-        return this.onClose(e);
-      }
-    };
-
-    return ZeroWebsocket;
-
-  })();
-
-  window.ZeroWebsocket = ZeroWebsocket;
-
-}).call(this);
-
 /* ---- lib/jquery.cssanim.js ---- */
 
 
@@ -910,7 +755,7 @@ $.extend( $.easing,
 
   Prefix = (function() {
     function Prefix() {
-      this.handleCommand = bind(this.handleCommand, this);
+      this.handleMessage = bind(this.handleMessage, this);
       this.watch = bind(this.watch, this);
       this.node = document.createElement("zeronet-shadow-dom-ui");
       document.documentElement.appendChild(this.node);
@@ -930,7 +775,7 @@ $.extend( $.easing,
       })(this));
       this.gate = new WebsocketGate(this.dom);
       window.parent = {
-        postMessage: this.handleCommand
+        postMessage: this.handleMessage
       };
     }
 
@@ -984,8 +829,17 @@ $.extend( $.easing,
       });
     };
 
-    Prefix.prototype.handleCommand = function(message) {
-      return console.log(message);
+    Prefix.prototype.handleMessage = function(message) {
+      if (message.cmd === "innerReady") {
+        return window.postMessage({
+          cmd: "wrapperOpenedWebsocket"
+        }, "*");
+      } else if (message.cmd === "innerLoaded" || message.cmd === "wrapperInnerLoaded") {
+        return location.hash = location.hash;
+      } else {
+        console.log(message);
+        return this.gate.send(message);
+      }
     };
 
     return Prefix;
@@ -1092,7 +946,7 @@ $.extend( $.easing,
         this.next_message_id += 1;
       }
       if (this.connected) {
-        this.ws.send(JSON.stringify(message));
+        this.iframe.contentWindow.postMessage(message, "*");
       } else {
         this.log("Not connected, adding message to queue");
         this.message_queue.push(message);
@@ -1115,7 +969,7 @@ $.extend( $.easing,
       ref = this.message_queue;
       for (i = 0, len = ref.length; i < len; i++) {
         message = ref[i];
-        this.ws.send(JSON.stringify(message));
+        this.iframe.contentWindow.postMessage(message, "*");
       }
       this.message_queue = [];
       if (this.onOpen != null) {

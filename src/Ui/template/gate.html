@@ -18,7 +18,11 @@
 				window.parent.postMessage(JSON.parse(e.data), "*");
 			};
 			window.onmessage = function(e) {
-				console.log("recv", e.data);
+				// Don't replace with (e.data.id < 1000000), this breaks id =
+				// NaN case which is (unfortunately) used by many ites
+				if(e.data && !(e.data.id >= 1000000)) {
+					ws.send(JSON.stringify(e.data));
+				}
 			};
 		</script>
 	</body>
