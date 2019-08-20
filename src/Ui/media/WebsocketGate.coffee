@@ -14,6 +14,7 @@ class WebsocketGate
 		@iframe = document.createElement("iframe")
 		@iframe.src = "/ZeroNet-Internal/Gate"
 		@iframe.onerror = @onErrorWebsocket
+		@iframe.style.display = "none"
 		@dom.appendChild @iframe
 		@connected = false
 		@message_queue = []

@@ -883,6 +883,7 @@ $.extend( $.easing,
       this.iframe = document.createElement("iframe");
       this.iframe.src = "/ZeroNet-Internal/Gate";
       this.iframe.onerror = this.onErrorWebsocket;
+      this.iframe.style.display = "none";
       this.dom.appendChild(this.iframe);
       this.connected = false;
       return this.message_queue = [];
@@ -1012,6 +1013,7 @@ $.extend( $.easing,
   window.WebsocketGate = WebsocketGate;
 
 }).call(this);
+
 
 /* ---- ZeroSiteTheme.coffee ---- */
 
