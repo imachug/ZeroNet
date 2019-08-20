@@ -347,21 +347,30 @@ class UiRequest(object):
         prefix = open("src/Ui/template/prefix.html", "rb").read()
         return self.actionSiteMedia("/media" + path, prefix=prefix)
 
-    # Generate a new wrapper nonce to create websocket
-    def actionWrapperNonce(self):
-        origin = self.env.get("HTTP_REFERER", "")
+    # Create a sandboxed iframe for websocket communication
+    def actionGate(self):
+        # Allow only same-origin gate requests
+        origin = self.env.get("HTTP_ORIGIN")
+        host = self.env.get("HTTP_HOST")
+        if origin and host:
+            origin_host = origin.split("://", 1)[-1]
+            if host != origin_host:
+                return self.error403("Invalid origin: %s" % origin)
 
-        try:
-            path_parts = self.parsePath(origin)
-        except SecurityError as err:
-            return self.error403(err)
+        origin = self.getReferer()
+        address = origin.split("://")[1].split("/")[1]
 
-        site = SiteManager.site_manager.get(path_parts["address"])
+        site = SiteManager.site_manager.get(address)
         if site:
             wrapper_nonce = CryptHash.random()
             site.wrapper_nonces.add(wrapper_nonce)
-            self.sendHeader()
-            return iter([wrapper_nonce])
+            self.sendHeader(extra_headers={
+                "Content-Security-Policy": "sandbox allow-scripts"
+            })
+            return iter([self.render(
+                "src/Ui/template/gate.html",
+                wrapper_nonce=wrapper_nonce
+            )])
         else:
             return self.error400("No such site")
 
@@ -613,15 +622,6 @@ class UiRequest(object):
         ws = self.env.get("wsgi.websocket")
 
         if ws:
-            # Allow only same-origin websocket requests
-            origin = self.env.get("HTTP_ORIGIN")
-            host = self.env.get("HTTP_HOST")
-            if origin and host:
-                origin_host = origin.split("://", 1)[-1]
-                if host != origin_host:
-                    ws.send(json.dumps({"error": "Invalid origin: %s" % origin}))
-                    return self.error403("Invalid origin: %s" % origin)
-
             # Find site by wrapper_nonce
             wrapper_nonce = self.get["wrapper_nonce"]
             site = None

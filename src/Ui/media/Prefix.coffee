@@ -13,6 +13,11 @@ class Prefix
 			node.href = "/media/all.css"
 			node.onload = @watch
 			@dom.appendChild(node)
+		# Setup ZeroFrame command receiver
+		@gate = new WebsocketGate(@dom)
+		window.parent = {
+			postMessage: @onSiteMessage
+		}
 
 
 	watch: =>
@@ -83,4 +88,8 @@ class Prefix
 		}
 
 
-prefix = new Prefix
+	onSiteMessage: (message) =>
+		console.log message
+
+
+window.Prefix = Prefix

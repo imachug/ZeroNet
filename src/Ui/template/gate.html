@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Gate</title>
+	</head>
+	<body>
+		<script type="text/javascript">
+			var origin = location.protocol.replace("http", "ws") + "//" + location.host;
+			var ws_url = origin + "/ZeroNet-Internal/Websocket?wrapper_nonce={wrapper_nonce}";
+			var ws = new WebSocket(ws_url);
+			ws.onopen = function() {
+				window.parent.postMessage({cmd: "wrapperGateOpenWebsocket"}, "*");
+			};
+			ws.onclose = function() {
+				window.parent.postMessage({cmd: "wrapperGateCloseWebsocket"}, "*");
+			};
+			ws.onmessage = function(e) {
+				window.parent.postMessage(JSON.parse(e.data), "*");
+			};
+			window.onmessage = function(e) {
+				console.log("recv", e.data);
+			};
+		</script>
+	</body>
+</html>
