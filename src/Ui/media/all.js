@@ -830,12 +830,22 @@ $.extend( $.easing,
     };
 
     Prefix.prototype.handleMessage = function(message) {
+      var viewport;
       if (message.cmd === "innerReady") {
         return window.postMessage({
           cmd: "wrapperOpenedWebsocket"
         }, "*");
       } else if (message.cmd === "innerLoaded" || message.cmd === "wrapperInnerLoaded") {
         return location.hash = location.hash;
+      } else if (message.cmd === "wrapperSetViewport") {
+        console.log(message);
+        viewport = document.querySelector("meta[name=viewport]");
+        if (!viewport) {
+          viewport = document.createElement("meta");
+          viewport.name = "viewport";
+          document.head.appendChild(viewport);
+        }
+        return viewport.content = message.params;
       } else {
         console.log(message);
         return this.gate.send(message);
@@ -1013,7 +1023,6 @@ $.extend( $.easing,
   window.WebsocketGate = WebsocketGate;
 
 }).call(this);
-
 
 /* ---- ZeroSiteTheme.coffee ---- */
 
