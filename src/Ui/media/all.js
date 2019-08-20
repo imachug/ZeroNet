@@ -838,7 +838,6 @@ $.extend( $.easing,
       } else if (message.cmd === "innerLoaded" || message.cmd === "wrapperInnerLoaded") {
         return location.hash = location.hash;
       } else if (message.cmd === "wrapperSetViewport") {
-        console.log(message);
         viewport = document.querySelector("meta[name=viewport]");
         if (!viewport) {
           viewport = document.createElement("meta");
@@ -846,6 +845,8 @@ $.extend( $.easing,
           document.head.appendChild(viewport);
         }
         return viewport.content = message.params;
+      } else if (message.cmd === "wrapperSetTitle") {
+        return document.title = message.params;
       } else {
         console.log(message);
         return this.gate.send(message);

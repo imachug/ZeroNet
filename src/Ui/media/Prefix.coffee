@@ -98,12 +98,16 @@ class Prefix
 			# TODO: check whether this navigation way actually works
 			location.hash = location.hash
 		else if message.cmd == "wrapperSetViewport"
+			# For compatibility
 			viewport = document.querySelector("meta[name=viewport]")
 			if not viewport
 				viewport = document.createElement("meta")
 				viewport.name = "viewport"
 				document.head.appendChild viewport
 			viewport.content = message.params
+		else if message.cmd == "wrapperSetTitle"
+			# For compatibility
+			document.title = message.params
 		else
 			console.log message
 			@gate.send message
