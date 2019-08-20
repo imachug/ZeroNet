@@ -912,7 +912,7 @@ $.extend( $.easing,
     function Prefix() {
       this.watch = bind(this.watch, this);
       this.node = document.createElement("zeronet-shadow-dom-ui");
-      document.body.appendChild(this.node);
+      document.documentElement.appendChild(this.node);
       this.dom = this.node.attachShadow({
         mode: "closed"
       });
@@ -951,14 +951,14 @@ $.extend( $.easing,
               if (timesRemoved > 100) {
                 timesRemoved = 0;
                 results.push(setTimeout((function() {
-                  if (_this.node.parentNode !== document.body) {
-                    document.body.appendChild(_this.node);
+                  if (_this.node.parentNode !== document.documentElement) {
+                    document.documentElement.appendChild(_this.node);
                   }
                   return _this.node.style.cssText = css_text;
                 }), 100));
               } else {
-                if (_this.node.parentNode !== document.body) {
-                  document.body.appendChild(_this.node);
+                if (_this.node.parentNode !== document.documentElement) {
+                  document.documentElement.appendChild(_this.node);
                 }
                 results.push(_this.node.style.cssText = css_text);
               }
@@ -969,7 +969,7 @@ $.extend( $.easing,
           return results;
         };
       })(this));
-      observer.observe(document.body, {
+      observer.observe(document.documentElement, {
         childList: true
       });
       return observer.observe(this.node, {

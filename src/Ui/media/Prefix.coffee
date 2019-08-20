@@ -2,7 +2,7 @@ class Prefix
 	constructor: ->
 		# Create ZeroNet UI node
 		@node = document.createElement("zeronet-shadow-dom-ui")
-		document.body.appendChild @node
+		document.documentElement.appendChild @node
 		# Attach shadow dom
 		@dom = @node.attachShadow({mode: "closed"})
 		document.addEventListener "DOMContentLoaded", =>
@@ -57,25 +57,25 @@ class Prefix
 						# Note: This is actually not to prevent malicious sites
 						# from tricking the user. This is for the case when the
 						# following code is used:
-						# while(document.body.firstChild) {
-						#     document.body.removeChild(
-						#         document.body.firstChild
+						# while(document.documentElement.firstChild) {
+						#     document.documentElement.removeChild(
+						#         document.documentElement.firstChild
 						#     );
 						#     await sleep(5); // optimize CPU usage
 						# }
 						# (assuming sleep(N) means "sleep for N ms")
 						timesRemoved = 0
 						setTimeout ( =>
-							if @node.parentNode != document.body
-								document.body.appendChild @node
+							if @node.parentNode != document.documentElement
+								document.documentElement.appendChild @node
 							@node.style.cssText = css_text
 						), 100
 					else
-						if @node.parentNode != document.body
-							document.body.appendChild @node
+						if @node.parentNode != document.documentElement
+							document.documentElement.appendChild @node
 						@node.style.cssText = css_text
 		)
-		observer.observe document.body, {childList: true}
+		observer.observe document.documentElement, {childList: true}
 		observer.observe @node, {
 			attributes: true,
 			attributeOldValue: true,
