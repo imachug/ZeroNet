@@ -108,6 +108,16 @@ class Prefix
 		else if message.cmd == "wrapperSetTitle"
 			# For compatibility
 			document.title = message.params
+		else if message.cmd == "wrapperReload"
+			# For compatibility
+			url = message.params[0]
+			if url
+				if location.href.toString().indexOf("?") > 0
+					location.href += "&" + url
+				else
+					location.href += "?" + url
+			else
+				location.reload()
 		else
 			console.log message
 			@gate.send message

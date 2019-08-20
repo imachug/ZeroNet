@@ -830,7 +830,7 @@ $.extend( $.easing,
     };
 
     Prefix.prototype.handleMessage = function(message) {
-      var viewport;
+      var url, viewport;
       if (message.cmd === "innerReady") {
         return window.postMessage({
           cmd: "wrapperOpenedWebsocket"
@@ -847,6 +847,17 @@ $.extend( $.easing,
         return viewport.content = message.params;
       } else if (message.cmd === "wrapperSetTitle") {
         return document.title = message.params;
+      } else if (message.cmd === "wrapperReload") {
+        url = message.params[0];
+        if (url) {
+          if (location.href.toString().indexOf("?") > 0) {
+            return location.href += "&" + url;
+          } else {
+            return location.href += "?" + url;
+          }
+        } else {
+          return location.reload();
+        }
       } else {
         console.log(message);
         return this.gate.send(message);
