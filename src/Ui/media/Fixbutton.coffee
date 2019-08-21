@@ -1,32 +1,43 @@
 class Fixbutton
-	constructor: ->
+	constructor: (dom) ->
+		fixbutton = document.createElement("div")
+		fixbutton.className = "fixbutton"
+		fixbutton.innerHTML = """
+			<div class='fixbutton-text'>
+				<img width=22 src='/uimedia/img/logo-white.png'/>
+			</div>
+			<div class='fixbutton-burger'>&#x2261;</div>
+			<a class='fixbutton-bg' href="{homepage}/"></a>
+		"""
+		dom.appendChild fixbutton
+
+		fixbutton_bg = fixbutton.querySelector(".fixbutton-bg")
+		fixbutton_burger = fixbutton.querySelector(".fixbutton-burger")
+		fixbutton_text = fixbutton.querySelector(".fixbutton-text")
+
 		@dragging = false
-		$(".fixbutton-bg").on "mouseover", ->
-			$(".fixbutton-bg").stop().animate({"scale": 0.7}, 800, "easeOutElastic")
-			$(".fixbutton-burger").stop().animate({"opacity": 1.5, "left": 0}, 800, "easeOutElastic")
-			$(".fixbutton-text").stop().animate({"opacity": 0, "left": 20}, 300, "easeOutCubic")
+		fixbutton_bg.addEventListener "mouseover", ->
+			fixbutton_bg.style.transition = "transform 0.4s cubic-bezier(.17,3.11,.51,.36)"
+			fixbutton_bg.style.transform = "scale(0.7)"
+			fixbutton_burger.style.transition = "opacity 0.3s ease-out, left 0.3s ease-out"
+			fixbutton_burger.style.opacity = "1.5"
+			fixbutton_burger.style.left = "0"
+			fixbutton_text.style.transition = "opacity 0.3s ease-out, left 0.3s ease-out"
+			fixbutton_text.style.opacity = "0"
+			fixbutton_text.style.left = "20px"
 
-		$(".fixbutton-bg").on "mouseout", ->
-			if $(".fixbutton").hasClass("dragging")
-				return true
-			$(".fixbutton-bg").stop().animate({"scale": 0.6}, 300, "easeOutCubic")
-			$(".fixbutton-burger").stop().animate({"opacity": 0, "left": -20}, 300, "easeOutCubic")
-			$(".fixbutton-text").stop().animate({"opacity": 0.9, "left": 0}, 300, "easeOutBack")
-
-
-		###$(".fixbutton-bg").on "click", ->
-			return false
-		###
-
-		$(".fixbutton-bg").on "mousedown", ->
-			# $(".fixbutton-burger").stop().animate({"scale": 0.7, "left": 0}, 300, "easeOutCubic")
-			#$("#inner-iframe").toggleClass("back")
-			#$(".wrapper-iframe").stop().animate({"scale": 0.9}, 600, "easeOutCubic")
-			#$("body").addClass("back")
-
-		$(".fixbutton-bg").on "mouseup", ->
-			# $(".fixbutton-burger").stop().animate({"scale": 1, "left": 0}, 600, "easeOutElastic")
-
+		fixbutton_bg.addEventListener "mouseout", ->
+			fixbutton_bg.style.transition = "transform 0.15s cubic-bezier(.17,3.11,.51,.36)"
+			fixbutton_bg.style.transform = "scale(0.6)"
+			fixbutton_burger.style.transition = """
+				opacity 0.15s cubic-bezier(.17,3.11,.51,.36),
+				left 0.15s cubic-bezier(.17,3.11,.51,.36)
+			"""
+			fixbutton_burger.style.opacity = "0"
+			fixbutton_burger.style.left = "-20px"
+			fixbutton_text.style.transition = "opacity 0.3s ease-out, left 0.3s ease-out"
+			fixbutton_text.style.opacity = "0.9"
+			fixbutton_text.style.left = "0"
 
 
 window.Fixbutton = Fixbutton

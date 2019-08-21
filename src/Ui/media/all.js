@@ -329,42 +329,36 @@ $.extend( $.easing,
   var Fixbutton;
 
   Fixbutton = (function() {
-    function Fixbutton() {
+    function Fixbutton(dom) {
+      var fixbutton, fixbutton_bg, fixbutton_burger, fixbutton_text;
+      fixbutton = document.createElement("div");
+      fixbutton.className = "fixbutton";
+      fixbutton.innerHTML = "<div class='fixbutton-text'>\n	<img width=22 src='/uimedia/img/logo-white.png'/>\n</div>\n<div class='fixbutton-burger'>&#x2261;</div>\n<a class='fixbutton-bg' href=\"{homepage}/\"></a>";
+      dom.appendChild(fixbutton);
+      fixbutton_bg = fixbutton.querySelector(".fixbutton-bg");
+      fixbutton_burger = fixbutton.querySelector(".fixbutton-burger");
+      fixbutton_text = fixbutton.querySelector(".fixbutton-text");
       this.dragging = false;
-      $(".fixbutton-bg").on("mouseover", function() {
-        $(".fixbutton-bg").stop().animate({
-          "scale": 0.7
-        }, 800, "easeOutElastic");
-        $(".fixbutton-burger").stop().animate({
-          "opacity": 1.5,
-          "left": 0
-        }, 800, "easeOutElastic");
-        return $(".fixbutton-text").stop().animate({
-          "opacity": 0,
-          "left": 20
-        }, 300, "easeOutCubic");
+      fixbutton_bg.addEventListener("mouseover", function() {
+        fixbutton_bg.style.transition = "transform 0.4s cubic-bezier(.17,3.11,.51,.36)";
+        fixbutton_bg.style.transform = "scale(0.7)";
+        fixbutton_burger.style.transition = "opacity 0.3s ease-out, left 0.3s ease-out";
+        fixbutton_burger.style.opacity = "1.5";
+        fixbutton_burger.style.left = "0";
+        fixbutton_text.style.transition = "opacity 0.3s ease-out, left 0.3s ease-out";
+        fixbutton_text.style.opacity = "0";
+        return fixbutton_text.style.left = "20px";
       });
-      $(".fixbutton-bg").on("mouseout", function() {
-        if ($(".fixbutton").hasClass("dragging")) {
-          return true;
-        }
-        $(".fixbutton-bg").stop().animate({
-          "scale": 0.6
-        }, 300, "easeOutCubic");
-        $(".fixbutton-burger").stop().animate({
-          "opacity": 0,
-          "left": -20
-        }, 300, "easeOutCubic");
-        return $(".fixbutton-text").stop().animate({
-          "opacity": 0.9,
-          "left": 0
-        }, 300, "easeOutBack");
+      fixbutton_bg.addEventListener("mouseout", function() {
+        fixbutton_bg.style.transition = "transform 0.15s cubic-bezier(.17,3.11,.51,.36)";
+        fixbutton_bg.style.transform = "scale(0.6)";
+        fixbutton_burger.style.transition = "opacity 0.15s cubic-bezier(.17,3.11,.51,.36),\nleft 0.15s cubic-bezier(.17,3.11,.51,.36)";
+        fixbutton_burger.style.opacity = "0";
+        fixbutton_burger.style.left = "-20px";
+        fixbutton_text.style.transition = "opacity 0.3s ease-out, left 0.3s ease-out";
+        fixbutton_text.style.opacity = "0.9";
+        return fixbutton_text.style.left = "0";
       });
-
-      /*$(".fixbutton-bg").on "click", ->
-      			return false */
-      $(".fixbutton-bg").on("mousedown", function() {});
-      $(".fixbutton-bg").on("mouseup", function() {});
     }
 
     return Fixbutton;
@@ -374,6 +368,7 @@ $.extend( $.easing,
   window.Fixbutton = Fixbutton;
 
 }).call(this);
+
 
 /* ---- Infopanel.coffee ---- */
 
@@ -807,6 +802,7 @@ $.extend( $.easing,
         };
       })(this));
       this.notifications = new Notifications(this.dom);
+      this.fixbutton = new Fixbutton(this.dom);
       this.ws = new ZeroWebsocket(wrapper_key);
       this.ws.route = this.postMessage;
       window.parent = {
@@ -1082,7 +1078,6 @@ $.extend( $.easing,
   window.Prefix = Prefix;
 
 }).call(this);
-
 
 /* ---- ZeroSiteTheme.coffee ---- */
 

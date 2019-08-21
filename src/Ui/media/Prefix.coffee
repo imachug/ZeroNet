@@ -19,6 +19,7 @@ class Prefix
 			node.onload = @watch
 			@dom.appendChild(node)
 		@notifications = new Notifications(@dom)
+		@fixbutton = new Fixbutton(@dom)
 		# Setup ZeroFrame command receiver
 		@ws = new ZeroWebsocket(wrapper_key)
 		@ws.route = @postMessage
