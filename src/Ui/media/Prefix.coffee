@@ -118,9 +118,27 @@ class Prefix
 					location.href += "?" + url
 			else
 				location.reload()
+		else if message.cmd == "wrapperPushState"
+			# For compatibility
+			url = @toRelativeQuery(message.params[2])
+			history.pushState message.params[0], message.params[1], url
+		else if message.cmd == "wrapperReplaceState"
+			# For compatibility
+			url = @toRelativeQuery(message.params[2])
+			history.replaceState message.params[0], message.params[1], url
+		else if message.cmd == "wrapperGetState"
+			# For compatibility
+			window.postMessage {cmd: "response", to: message.id, result: history.state}
 		else
 			console.log message
 			@gate.send message
+
+
+	toRelativeQuery: (query) ->
+		if not query.startsWith("#") and not query.startsWith("?")
+			return "?" + query
+		else
+			return query
 
 
 window.Prefix = Prefix

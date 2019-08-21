@@ -858,9 +858,29 @@ $.extend( $.easing,
         } else {
           return location.reload();
         }
+      } else if (message.cmd === "wrapperPushState") {
+        url = this.toRelativeQuery(message.params[2]);
+        return history.pushState(message.params[0], message.params[1], url);
+      } else if (message.cmd === "wrapperReplaceState") {
+        url = this.toRelativeQuery(message.params[2]);
+        return history.replaceState(message.params[0], message.params[1], url);
+      } else if (message.cmd === "wrapperGetState") {
+        return window.postMessage({
+          cmd: "response",
+          to: message.id,
+          result: history.state
+        });
       } else {
         console.log(message);
         return this.gate.send(message);
+      }
+    };
+
+    Prefix.prototype.toRelativeQuery = function(query) {
+      if (!query.startsWith("#") && !query.startsWith("?")) {
+        return "?" + query;
+      } else {
+        return query;
       }
     };
 
