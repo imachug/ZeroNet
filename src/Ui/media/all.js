@@ -840,7 +840,7 @@ $.extend( $.easing,
     Prefix.prototype.watch = function() {
       var css_text, observer, remove_iterator_start, times_removed;
       this.onLoad();
-      this.node.style.cssText = "position: fixed;\nleft: 0;\ntop: 0;\nright: 0;\nbottom: 0;\nwidth: 100%;\nheight: 100%;\ndisplay: block;\nvisibility: visible;\nopacity: 1;\npointer-events: all;\nz-index: 1000000; /* That should be enough */".replace(/;/g, " !important;");
+      this.node.style.cssText = "position: fixed;\nleft: 0;\ntop: 0;\nwidth: 0;\nheight: 0;\noverflow: visible;\ndisplay: block;\nvisibility: visible;\nopacity: 1;\npointer-events: all;\nz-index: 1000000; /* That should be enough */".replace(/;/g, " !important;");
       css_text = this.node.style.cssText;
       remove_iterator_start = 0;
       times_removed = 0;

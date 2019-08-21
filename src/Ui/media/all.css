@@ -49,7 +49,7 @@ a { color: black }
 
 /* Notification */
 
-.notifications { position: absolute; top: 0; right: 80px; display: inline-block; z-index: 999; white-space: nowrap }
+.notifications { position: fixed; top: 0; right: 80px; display: inline-block; z-index: 999; white-space: nowrap }
 .notification {
 	position: relative; float: right; clear: both; margin: 10px; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; -o-box-sizing: border-box; -ms-box-sizing: border-box; box-sizing: border-box ; overflow: hidden; -webkit-backface-visibility: hidden; -moz-backface-visibility: hidden; -o-backface-visibility: hidden; -ms-backface-visibility: hidden; backface-visibility: hidden ;
 	-webkit-perspective: 1000px; -moz-perspective: 1000px; -o-perspective: 1000px; -ms-perspective: 1000px; perspective: 1000px ; padding-bottom: 5px; color: #4F4F4F; font-family: 'Lucida Grande', 'Segoe UI', Helvetica, Arial, sans-serif;
