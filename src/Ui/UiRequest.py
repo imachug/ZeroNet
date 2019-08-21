@@ -611,9 +611,15 @@ class UiRequest(object):
             # Find site by wrapper_key
             wrapper_key = self.get["wrapper_key"]
             site = None
+            is_admin = None
             for site_check in list(self.server.sites.values()):
                 if site_check.settings["wrapper_key"] == wrapper_key:
                     site = site_check
+                    is_admin = False
+                    break
+                elif site_check.settings["admin_wrapper_key"] == wrapper_key:
+                    site = site_check
+                    is_admin = True
                     break
             if not site:
                 ws.send(json.dumps({"error": "Wrapper key not found: %s" % wrapper_key}))
@@ -627,7 +633,7 @@ class UiRequest(object):
             if not user:
                 ws.send(json.dumps({"error": "No user found"}))
                 return self.error403("No user found")
-            ui_websocket = UiWebsocket(ws, site, self.server, user, self)
+            ui_websocket = UiWebsocket(ws, site, self.server, user, self, is_admin)
             site.websockets.append(ui_websocket)  # Add to site websockets to allow notify on events
             self.server.websockets.append(ui_websocket)
             ui_websocket.start()

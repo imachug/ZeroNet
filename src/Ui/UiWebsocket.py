@@ -30,12 +30,13 @@ class UiWebsocket(object):
     ])
     async_commands = set(["fileGet", "fileList", "dirList", "fileNeed", "serverPortcheck", "siteListModifiedFiles"])
 
-    def __init__(self, ws, site, server, user, request):
+    def __init__(self, ws, site, server, user, request, is_admin):
         self.ws = ws
         self.site = site
         self.user = user
         self.log = site.log
         self.request = request
+        self.is_admin = is_admin
         self.permissions = []
         self.server = server
         self.next_message_id = 1
@@ -183,7 +184,7 @@ class UiWebsocket(object):
 
     def getPermissions(self, req_id):
         permissions = self.site.settings["permissions"]
-        if req_id >= 1000000:  # Its a wrapper command, allow admin commands
+        if self.is_admin:  # Its a wrapper command, allow admin commands
             permissions = permissions[:]
             permissions.append("ADMIN")
         return permissions

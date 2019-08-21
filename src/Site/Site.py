@@ -75,6 +75,10 @@ class Site(object):
             self.settings["wrapper_key"] = CryptHash.random()
             self.log.debug("New wrapper key: %s" % self.settings["wrapper_key"])
 
+        if not self.settings.get("admin_wrapper_key"):  # To auth websocket permissions
+            self.settings["admin_wrapper_key"] = CryptHash.random()
+            self.log.debug("New admin wrapper key: %s" % self.settings["admin_wrapper_key"])
+
         if not self.settings.get("ajax_key"):  # To auth websocket permissions
             self.settings["ajax_key"] = CryptHash.random()
             self.log.debug("New ajax key: %s" % self.settings["ajax_key"])

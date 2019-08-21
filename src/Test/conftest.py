@@ -333,7 +333,7 @@ def ui_websocket(site, user):
             return back
 
     ws_mock = WsMock()
-    ui_websocket = UiWebsocket(ws_mock, site, None, user, None)
+    ui_websocket = UiWebsocket(ws_mock, site, None, user, None, False)
 
     def testAction(action, *args, **kwargs):
         ui_websocket.handleRequest({"id": 0, "cmd": action, "params": list(args) if args else kwargs})
