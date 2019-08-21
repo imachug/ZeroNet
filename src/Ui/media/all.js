@@ -757,6 +757,7 @@ $.extend( $.easing,
     function Prefix() {
       this.handleMessage = bind(this.handleMessage, this);
       this.watch = bind(this.watch, this);
+      this.siteAddress = location.pathname.replace("/", "").split("/")[0];
       this.node = document.createElement("zeronet-shadow-dom-ui");
       document.documentElement.appendChild(this.node);
       this.dom = this.node.attachShadow({
@@ -777,7 +778,30 @@ $.extend( $.easing,
       window.parent = {
         postMessage: this.handleMessage
       };
+      this.initHistory();
     }
+
+    Prefix.prototype.initHistory = function() {
+      var oldPushState, oldReplaceState;
+      oldPushState = history.pushState.bind(history);
+      oldReplaceState = history.replaceState.bind(history);
+      history.pushState = (function(_this) {
+        return function(state, title, url) {
+          if (typeof url === "string" && url.startsWith("/")) {
+            url = "/" + _this.siteAddress + url;
+          }
+          return oldPushState(state, title, url);
+        };
+      })(this);
+      return history.replaceState = (function(_this) {
+        return function(state, title, url) {
+          if (typeof url === "string" && url.startsWith("/")) {
+            url = "/" + _this.siteAddress + url;
+          }
+          return oldReplaceState(state, title, url);
+        };
+      })(this);
+    };
 
     Prefix.prototype.watch = function() {
       var css_text, observer, remove_iterator_start, times_removed;

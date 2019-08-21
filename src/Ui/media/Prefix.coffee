@@ -1,5 +1,6 @@
 class Prefix
 	constructor: ->
+		@siteAddress = location.pathname.replace("/", "").split("/")[0]
 		# Create ZeroNet UI node
 		@node = document.createElement("zeronet-shadow-dom-ui")
 		document.documentElement.appendChild @node
@@ -15,9 +16,26 @@ class Prefix
 			@dom.appendChild(node)
 		# Setup ZeroFrame command receiver
 		@gate = new WebsocketGate(@dom)
+		# Replace dangerous/overridden methods
 		window.parent = {
 			postMessage: @handleMessage
 		}
+		@initHistory()
+
+
+	initHistory: ->
+		oldPushState = history.pushState.bind(history)
+		oldReplaceState = history.replaceState.bind(history)
+
+		history.pushState = (state, title, url) =>
+			if typeof url == "string" and url.startsWith("/")
+				url = "/" + @siteAddress + url
+			oldPushState(state, title, url)
+
+		history.replaceState = (state, title, url) =>
+			if typeof url == "string" and url.startsWith("/")
+				url = "/" + @siteAddress + url
+			oldReplaceState(state, title, url)
 
 
 	watch: =>
