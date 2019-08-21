@@ -754,7 +754,7 @@ $.extend( $.easing,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   Prefix = (function() {
-    function Prefix() {
+    function Prefix(wrapper_key) {
       this.handleMessage = bind(this.handleMessage, this);
       this.watch = bind(this.watch, this);
       this.siteAddress = location.pathname.replace("/", "").split("/")[0];
@@ -776,7 +776,8 @@ $.extend( $.easing,
           return _this.dom.appendChild(node);
         };
       })(this));
-      this.gate = new WebsocketGate(this.dom);
+      this.ws = new ZeroWebsocket(wrapper_key);
+      this.ws.route = this.postMessage;
       window.parent = {
         postMessage: this.handleMessage
       };
@@ -905,8 +906,7 @@ $.extend( $.easing,
       } else if (message.cmd === "wrapperRequestFullscreen") {
         return document.documentElement.requestFullscreen();
       } else {
-        console.log(message);
-        return this.gate.send(message);
+        return this.ws.send(message);
       }
     };
 
@@ -927,175 +927,14 @@ $.extend( $.easing,
 }).call(this);
 
 
-/* ---- WebsocketGate.coffee ---- */
-
-
-(function() {
-  var WebsocketGate,
-    bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
-    slice = [].slice;
-
-  WebsocketGate = (function() {
-    function WebsocketGate(dom) {
-      this.onCloseWebsocket = bind(this.onCloseWebsocket, this);
-      this.onErrorWebsocket = bind(this.onErrorWebsocket, this);
-      this.onOpenWebsocket = bind(this.onOpenWebsocket, this);
-      this.log = bind(this.log, this);
-      this.response = bind(this.response, this);
-      this.route = bind(this.route, this);
-      this.onMessage = bind(this.onMessage, this);
-      this.dom = dom;
-      this.iframe = null;
-      this.next_message_id = 1;
-      this.waiting_cb = {};
-      window.onmessage = this.onMessage;
-      this.connect();
-    }
-
-    WebsocketGate.prototype.connect = function() {
-      if (this.iframe) {
-        this.dom.removeChild(this.iframe);
-      }
-      this.iframe = document.createElement("iframe");
-      this.iframe.src = "/ZeroNet-Internal/Gate";
-      this.iframe.onerror = this.onErrorWebsocket;
-      this.iframe.style.display = "none";
-      this.dom.appendChild(this.iframe);
-      this.connected = false;
-      return this.message_queue = [];
-    };
-
-    WebsocketGate.prototype.onMessage = function(e) {
-      var cmd, message;
-      if (e.source !== this.iframe.contentWindow) {
-        return;
-      }
-      message = e.data;
-      cmd = message.cmd;
-      if (cmd === "wrapperGateOpenWebsocket") {
-        return this.onOpenWebsocket();
-      } else if (cmd === "wrapperGateCloseWebsocket") {
-        return this.onCloseWebsocket();
-      } else if (cmd === "response") {
-        if (this.waiting_cb[message.to] != null) {
-          return this.waiting_cb[message.to](message.result);
-        } else {
-          return this.log("Websocket callback not found:", message);
-        }
-      } else if (cmd === "ping") {
-        return this.response(message.id, "pong");
-      } else {
-        return this.route(cmd, message);
-      }
-    };
-
-    WebsocketGate.prototype.route = function(cmd, message) {
-      return this.log("Unknown command", message);
-    };
-
-    WebsocketGate.prototype.response = function(to, result) {
-      return this.send({
-        "cmd": "response",
-        "to": to,
-        "result": result
-      });
-    };
-
-    WebsocketGate.prototype.cmd = function(cmd, params, cb) {
-      if (params == null) {
-        params = {};
-      }
-      if (cb == null) {
-        cb = null;
-      }
-      return this.send({
-        "cmd": cmd,
-        "params": params
-      }, cb);
-    };
-
-    WebsocketGate.prototype.send = function(message, cb) {
-      if (cb == null) {
-        cb = null;
-      }
-      if (message.id == null) {
-        message.id = this.next_message_id;
-        this.next_message_id += 1;
-      }
-      if (this.connected) {
-        this.iframe.contentWindow.postMessage(message, "*");
-      } else {
-        this.log("Not connected, adding message to queue");
-        this.message_queue.push(message);
-      }
-      if (cb) {
-        return this.waiting_cb[message.id] = cb;
-      }
-    };
-
-    WebsocketGate.prototype.log = function() {
-      var args;
-      args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-      return console.log.apply(console, ["[ZeroWebsocket]"].concat(slice.call(args)));
-    };
-
-    WebsocketGate.prototype.onOpenWebsocket = function(e) {
-      var i, len, message, ref;
-      this.log("Open");
-      this.connected = true;
-      ref = this.message_queue;
-      for (i = 0, len = ref.length; i < len; i++) {
-        message = ref[i];
-        this.iframe.contentWindow.postMessage(message, "*");
-      }
-      this.message_queue = [];
-      if (this.onOpen != null) {
-        return this.onOpen(e);
-      }
-    };
-
-    WebsocketGate.prototype.onErrorWebsocket = function(e) {
-      this.log("Error", e);
-      if (this.onError != null) {
-        return this.onError(e);
-      }
-    };
-
-    WebsocketGate.prototype.onCloseWebsocket = function(e, reconnect) {
-      if (reconnect == null) {
-        reconnect = 10000;
-      }
-      this.log("Closed", e);
-      this.connected = false;
-      if (e && e.code === 1000 && e.wasClean === false) {
-        this.log("Server error, please reload the page", e.wasClean);
-      } else {
-        setTimeout(((function(_this) {
-          return function() {
-            _this.log("Reconnecting...");
-            return _this.connect();
-          };
-        })(this)), reconnect);
-      }
-      if (this.onClose != null) {
-        return this.onClose(e);
-      }
-    };
-
-    return WebsocketGate;
-
-  })();
-
-  window.WebsocketGate = WebsocketGate;
-
-}).call(this);
-
 /* ---- ZeroSiteTheme.coffee ---- */
 
 
 (function() {
   var DARK, LIGHT, changeColorScheme, detectColorScheme, displayNotification, mqDark, mqLight,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+  return;
 
   DARK = "(prefers-color-scheme: dark)";
 
@@ -1148,5 +987,154 @@ $.extend( $.easing,
       detectColorScheme();
     }
   });
+
+}).call(this);
+
+/* ---- ZeroWebsocket.coffee ---- */
+
+
+(function() {
+  var ZeroWebsocket,
+    bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+    slice = [].slice;
+
+  ZeroWebsocket = (function() {
+    function ZeroWebsocket(wrapper_key) {
+      this.onCloseWebsocket = bind(this.onCloseWebsocket, this);
+      this.onErrorWebsocket = bind(this.onErrorWebsocket, this);
+      this.onOpenWebsocket = bind(this.onOpenWebsocket, this);
+      this.log = bind(this.log, this);
+      this.response = bind(this.response, this);
+      this.route = bind(this.route, this);
+      this.onMessage = bind(this.onMessage, this);
+      var origin;
+      origin = location.protocol.replace("http", "ws") + "//" + location.host;
+      this.ws_url = origin + "/ZeroNet-Internal/Websocket?wrapper_key=" + wrapper_key;
+      this.next_message_id = 1;
+      this.waiting_cb = {};
+      this.connect();
+    }
+
+    ZeroWebsocket.prototype.connect = function() {
+      this.ws = new WebSocket(this.ws_url);
+      this.ws.onerror = this.onErrorWebsocket;
+      this.ws.onopen = this.onOpenWebsocket;
+      this.ws.onclose = this.onCloseWebsocket;
+      this.ws.onmessage = this.onMessage;
+      this.connected = false;
+      return this.message_queue = [];
+    };
+
+    ZeroWebsocket.prototype.onMessage = function(e) {
+      var cmd, message;
+      message = JSON.parse(e.data);
+      cmd = message.cmd;
+      if (cmd === "response" && (this.waiting_cb[message.to] != null)) {
+        return this.waiting_cb[message.to](message.result);
+      } else if (cmd === "ping") {
+        return this.response(message.id, "pong");
+      } else {
+        return this.route(message);
+      }
+    };
+
+    ZeroWebsocket.prototype.route = function(cmd, message) {
+      return this.log("Unknown command", message);
+    };
+
+    ZeroWebsocket.prototype.response = function(to, result) {
+      return this.send({
+        "cmd": "response",
+        "to": to,
+        "result": result
+      });
+    };
+
+    ZeroWebsocket.prototype.cmd = function(cmd, params, cb) {
+      if (params == null) {
+        params = {};
+      }
+      if (cb == null) {
+        cb = null;
+      }
+      return this.send({
+        "cmd": cmd,
+        "params": params
+      }, cb);
+    };
+
+    ZeroWebsocket.prototype.send = function(message, cb) {
+      if (cb == null) {
+        cb = null;
+      }
+      if (message.id == null) {
+        message.id = this.next_message_id;
+        this.next_message_id += 1;
+      }
+      if (this.connected) {
+        this.ws.send(JSON.stringify(message));
+      } else {
+        this.log("Not connected, adding message to queue");
+        this.message_queue.push(message);
+      }
+      if (cb) {
+        return this.waiting_cb[message.id] = cb;
+      }
+    };
+
+    ZeroWebsocket.prototype.log = function() {
+      var args;
+      args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+      return console.log.apply(console, ["[ZeroWebsocket]"].concat(slice.call(args)));
+    };
+
+    ZeroWebsocket.prototype.onOpenWebsocket = function(e) {
+      var i, len, message, ref;
+      this.log("Open");
+      this.connected = true;
+      ref = this.message_queue;
+      for (i = 0, len = ref.length; i < len; i++) {
+        message = ref[i];
+        this.ws.send(JSON.stringify(message));
+      }
+      this.message_queue = [];
+      if (this.onOpen != null) {
+        return this.onOpen(e);
+      }
+    };
+
+    ZeroWebsocket.prototype.onErrorWebsocket = function(e) {
+      this.log("Error", e);
+      if (this.onError != null) {
+        return this.onError(e);
+      }
+    };
+
+    ZeroWebsocket.prototype.onCloseWebsocket = function(e, reconnect) {
+      if (reconnect == null) {
+        reconnect = 10000;
+      }
+      this.log("Closed", e);
+      this.connected = false;
+      if (e && e.code === 1000 && e.wasClean === false) {
+        this.log("Server error, please reload the page", e.wasClean);
+      } else {
+        setTimeout(((function(_this) {
+          return function() {
+            _this.log("Reconnecting...");
+            return _this.connect();
+          };
+        })(this)), reconnect);
+      }
+      if (this.onClose != null) {
+        return this.onClose(e);
+      }
+    };
+
+    return ZeroWebsocket;
+
+  })();
+
+  window.ZeroWebsocket = ZeroWebsocket;
 
 }).call(this);

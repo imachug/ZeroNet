@@ -1,5 +1,5 @@
 class Prefix
-	constructor: ->
+	constructor: (wrapper_key) ->
 		@siteAddress = location.pathname.replace("/", "").split("/")[0]
 		@postMessage = window.postMessage.bind(window)
 		@open = window.open.bind(window)
@@ -17,7 +17,8 @@ class Prefix
 			node.onload = @watch
 			@dom.appendChild(node)
 		# Setup ZeroFrame command receiver
-		@gate = new WebsocketGate(@dom)
+		@ws = new ZeroWebsocket(wrapper_key)
+		@ws.route = @postMessage
 		# Replace dangerous/overridden methods
 		window.parent = {
 			postMessage: @handleMessage
@@ -158,8 +159,7 @@ class Prefix
 		else if message.cmd == "wrapperRequestFullscreen"
 			document.documentElement.requestFullscreen()
 		else
-			console.log message
-			@gate.send message
+			@ws.send message
 
 
 	toRelativeQuery: (query) ->

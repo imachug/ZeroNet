@@ -226,12 +226,11 @@ class UiRequest(object):
             return referer
 
     # Send response headers
-    def sendHeader(self, status=200, content_type="text/html", noscript=False, allow_ajax=False, extra_headers=[]):
+    def sendHeader(self, status=200, content_type="text/html", noscript=False, enforce_sameorigin=False, allow_ajax=False, extra_headers=[]):
         headers = {}
         headers["Version"] = "HTTP/1.1"
         headers["Connection"] = "Keep-Alive"
         headers["Keep-Alive"] = "max=25, timeout=30"
-        headers["X-Frame-Options"] = "SAMEORIGIN"
         if content_type != "text/html" and self.env.get("HTTP_REFERER") and self.isSameOrigin(self.getReferer(), self.getRequestUrl()):
             headers["Access-Control-Allow-Origin"] = "*"  # Allow load font files from css
         if content_type == "text/javascript" and not self.env.get("HTTP_REFERER"):
@@ -239,6 +238,17 @@ class UiRequest(object):
 
         if noscript:
             headers["Content-Security-Policy"] = "default-src 'none'; sandbox allow-top-navigation allow-forms; img-src 'self'; font-src 'self'; media-src 'self'; style-src 'self' 'unsafe-inline';"
+        elif enforce_sameorigin:
+            if self.getReferer():
+                if not self.isSameOrigin(self.getReferer(), self.getRequestUrl()):
+                    # Everything except allow-same-origin. Notice that using CSP
+                    # for iframes stops half sites from working, but iframe's
+                    # are usually used for cross-site communication (e.g. Share
+                    # on ZeroMe), not as subwindows
+                    extra_headers["Content-Security-Policy"] = "sandbox allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-scripts allow-top-navigation"
+            else:
+                # Either a weird iframe or a normal window. Block weird iframes
+                extra_headers["X-Frame-Options"] = "DENY"
 
         if allow_ajax:
             headers["Access-Control-Allow-Origin"] = "null"
@@ -344,35 +354,11 @@ class UiRequest(object):
             # Raw data
             return self.actionSiteMedia("/media" + path)
 
-        prefix = open("src/Ui/template/prefix.html", "rb").read()
+        prefix = self.render(
+            "src/Ui/template/prefix.html",
+            wrapper_key=site.settings["wrapper_key"]
+        )
         return self.actionSiteMedia("/media" + path, prefix=prefix)
-
-    # Create a sandboxed iframe for websocket communication
-    def actionGate(self):
-        # Allow only same-origin gate requests
-        origin = self.env.get("HTTP_ORIGIN")
-        host = self.env.get("HTTP_HOST")
-        if origin and host:
-            origin_host = origin.split("://", 1)[-1]
-            if host != origin_host:
-                return self.error403("Invalid origin: %s" % origin)
-
-        origin = self.getReferer()
-        address = origin.split("://")[1].split("/")[1]
-
-        site = SiteManager.site_manager.get(address)
-        if site:
-            wrapper_nonce = CryptHash.random()
-            site.wrapper_nonces.add(wrapper_nonce)
-            self.sendHeader(extra_headers={
-                "Content-Security-Policy": "sandbox allow-scripts"
-            })
-            return iter([self.render(
-                "src/Ui/template/gate.html",
-                wrapper_nonce=wrapper_nonce
-            )])
-        else:
-            return self.error400("No such site")
 
     def getSiteUrl(self, address):
         if self.isProxyRequest():
@@ -591,7 +577,7 @@ class UiRequest(object):
                     status = 206
                 else:
                     status = 200
-                self.sendHeader(status, content_type=content_type, noscript=header_noscript, allow_ajax=header_allow_ajax, extra_headers=extra_headers)
+                self.sendHeader(status, content_type=content_type, noscript=header_noscript, enforce_sameorigin=True, allow_ajax=header_allow_ajax, extra_headers=extra_headers)
 
             if self.env["REQUEST_METHOD"] != "OPTIONS":
                 yield prefix
@@ -622,37 +608,35 @@ class UiRequest(object):
         ws = self.env.get("wsgi.websocket")
 
         if ws:
-            # Find site by wrapper_nonce
-            wrapper_nonce = self.get["wrapper_nonce"]
+            # Find site by wrapper_key
+            wrapper_key = self.get["wrapper_key"]
             site = None
             for site_check in list(self.server.sites.values()):
-                if wrapper_nonce in site_check.wrapper_nonces:
-                    site_check.wrapper_nonces.remove(wrapper_nonce)
+                if site_check.settings["wrapper_key"] == wrapper_key:
                     site = site_check
                     break
+            if not site:
+                ws.send(json.dumps({"error": "Wrapper key not found: %s" % wrapper_key}))
+                return self.error403("Wrapper key not found: %s" % wrapper_key)
 
-            if site:  # Correct wrapper nonce
-                try:
-                    user = self.getCurrentUser()
-                except Exception as err:
-                    ws.send(json.dumps({"error": "Error in data/user.json: %s" % err}))
-                    return self.error500("Error in data/user.json: %s" % err)
-                if not user:
-                    ws.send(json.dumps({"error": "No user found"}))
-                    return self.error403("No user found")
-                ui_websocket = UiWebsocket(ws, site, self.server, user, self)
-                site.websockets.append(ui_websocket)  # Add to site websockets to allow notify on events
-                self.server.websockets.append(ui_websocket)
-                ui_websocket.start()
-                self.server.websockets.remove(ui_websocket)
-                for site_check in list(self.server.sites.values()):
-                    # Remove websocket from every site (admin sites allowed to join other sites event channels)
-                    if ui_websocket in site_check.websockets:
-                        site_check.websockets.remove(ui_websocket)
-                return "Bye."
-            else:  # No site found by wrapper nonce
-                ws.send(json.dumps({"error": "Wrapper nonce not found: %s" % wrapper_nonce}))
-                return self.error403("Wrapper nonce not found: %s" % wrapper_nonce)
+            try:
+                user = self.getCurrentUser()
+            except Exception as err:
+                ws.send(json.dumps({"error": "Error in data/user.json: %s" % err}))
+                return self.error500("Error in data/user.json: %s" % err)
+            if not user:
+                ws.send(json.dumps({"error": "No user found"}))
+                return self.error403("No user found")
+            ui_websocket = UiWebsocket(ws, site, self.server, user, self)
+            site.websockets.append(ui_websocket)  # Add to site websockets to allow notify on events
+            self.server.websockets.append(ui_websocket)
+            ui_websocket.start()
+            self.server.websockets.remove(ui_websocket)
+            for site_check in list(self.server.sites.values()):
+                # Remove websocket from every site (admin sites allowed to join other sites event channels)
+                if ui_websocket in site_check.websockets:
+                    site_check.websockets.remove(ui_websocket)
+            return "Bye."
         else:
             self.start_response("400 Bad Request", [])
             return [b"Not a websocket request!"]

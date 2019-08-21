@@ -1,43 +1,31 @@
-class WebsocketGate
-	constructor: (dom) ->
-		@dom = dom
-		@iframe = null
+class ZeroWebsocket
+	constructor: (wrapper_key) ->
+		origin = location.protocol.replace("http", "ws") + "//" + location.host
+		@ws_url = origin + "/ZeroNet-Internal/Websocket?wrapper_key=" + wrapper_key
 		@next_message_id = 1
 		@waiting_cb = {}
-		window.onmessage = @onMessage
 		@connect()
 
 
 	connect: ->
-		if @iframe
-			@dom.removeChild @iframe
-		@iframe = document.createElement("iframe")
-		@iframe.src = "/ZeroNet-Internal/Gate"
-		@iframe.onerror = @onErrorWebsocket
-		@iframe.style.display = "none"
-		@dom.appendChild @iframe
+		@ws = new WebSocket(@ws_url)
+		@ws.onerror = @onErrorWebsocket
+		@ws.onopen = @onOpenWebsocket
+		@ws.onclose = @onCloseWebsocket
+		@ws.onmessage = @onMessage
 		@connected = false
 		@message_queue = []
 
 
 	onMessage: (e) =>
-		if e.source != @iframe.contentWindow
-			return
-		message = e.data
+		message = JSON.parse(e.data)
 		cmd = message.cmd
-		if cmd == "wrapperGateOpenWebsocket"
-			@onOpenWebsocket()
-		else if cmd == "wrapperGateCloseWebsocket"
-			@onCloseWebsocket()
-		else if cmd == "response"
-			if @waiting_cb[message.to]?
-				@waiting_cb[message.to](message.result)
-			else
-				@log "Websocket callback not found:", message
+		if cmd == "response" and @waiting_cb[message.to]?
+			@waiting_cb[message.to](message.result)
 		else if cmd == "ping"
 			@response message.id, "pong"
 		else
-			@route cmd, message
+			@route message
 
 	route: (cmd, message) =>
 		@log "Unknown command", message
@@ -56,10 +44,10 @@ class WebsocketGate
 			message.id = @next_message_id
 			@next_message_id += 1
 		if @connected
-			@iframe.contentWindow.postMessage message, "*"
+			@ws.send JSON.stringify(message)
 		else
 			@log "Not connected, adding message to queue"
-			@message_queue.push(message)
+			@message_queue.push message
 		if cb
 			@waiting_cb[message.id] = cb
 
@@ -74,7 +62,7 @@ class WebsocketGate
 
 		# Process messages sent before websocket opened
 		for message in @message_queue
-			@iframe.contentWindow.postMessage message, "*"
+			@ws.send JSON.stringify(message)
 		@message_queue = []
 
 		if @onOpen? then @onOpen(e)
@@ -98,4 +86,4 @@ class WebsocketGate
 		if @onClose? then @onClose(e)
 
 
-window.WebsocketGate = WebsocketGate
+window.ZeroWebsocket = ZeroWebsocket
