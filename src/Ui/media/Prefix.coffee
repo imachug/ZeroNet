@@ -13,9 +13,10 @@ class Prefix
 			node = document.createElement("link")
 			node.rel = "stylesheet"
 			node.type = "text/css"
-			node.href = "/media/all.css"
+			node.href = "/uimedia/all.css"
 			node.onload = @watch
 			@dom.appendChild(node)
+		@notifications = new Notifications(@dom)
 		# Setup ZeroFrame command receiver
 		@ws = new ZeroWebsocket(wrapper_key)
 		@ws.route = @postMessage
@@ -42,6 +43,7 @@ class Prefix
 
 
 	watch: =>
+		@notifications.test()
 		# Setup CSS
 		@node.style.cssText = """
 			position: fixed;

@@ -619,9 +619,10 @@ $.extend( $.easing,
     slice = [].slice;
 
   Notifications = (function() {
-    function Notifications(elem1) {
-      this.elem = elem1;
-      this;
+    function Notifications(dom) {
+      this.elem = document.createElement("div");
+      this.elem.className = "notifications";
+      dom.appendChild(this.elem);
     }
 
     Notifications.prototype.test = function() {
@@ -633,102 +634,112 @@ $.extend( $.easing,
       })(this)), 1000);
       return setTimeout(((function(_this) {
         return function() {
-          return _this.add("connection", "done", "<b>UiServer</b> connection recovered.", 5000);
+          return _this.add("connection rec", "done", "<b>UiServer</b> connection recovered.", 5000);
         };
       })(this)), 3000);
     };
 
     Notifications.prototype.add = function(id, type, body, timeout) {
-      var elem, i, len, ref, width;
+      var button, elem, i, icon, input, j, len, len1, ref, ref1, select, width;
       if (timeout == null) {
         timeout = 0;
       }
       id = id.replace(/[^A-Za-z0-9-]/g, "");
-      ref = $(".notification-" + id);
+      ref = this.elem.querySelectorAll(".notification-" + id);
       for (i = 0, len = ref.length; i < len; i++) {
         elem = ref[i];
-        this.close($(elem));
+        this.close(elem);
       }
-      elem = $(".notification.template", this.elem).clone().removeClass("template");
-      elem.addClass("notification-" + type).addClass("notification-" + id);
+      elem = document.createElement("div");
+      elem.className = "notification notification-" + type + " notification-" + id;
+      elem.innerHTML = "<span class=\"notification-icon\">!</span>\n<span class=\"body\">Test notification</span>\n<a class=\"close\" href=\"#Close\">&times;</a>\n<div style=\"clear: both\"></div>";
       if (type === "progress") {
-        elem.addClass("notification-done");
+        elem.classList.add("notification-done");
       }
+      icon = elem.querySelector(".notification-icon");
       if (type === "error") {
-        $(".notification-icon", elem).html("!");
+        icon.innerHTML = "!";
       } else if (type === "done") {
-        $(".notification-icon", elem).html("<div class='icon-success'></div>");
+        icon.innerHTML = "<div class='icon-success'></div>";
       } else if (type === "progress") {
-        $(".notification-icon", elem).html("<div class='icon-success'></div>");
+        icon.innerHTML = "<div class='icon-success'></div>";
       } else if (type === "ask") {
-        $(".notification-icon", elem).html("?");
+        icon.innerHTML = "?";
       } else {
-        $(".notification-icon", elem).html("i");
+        icon.innerHTML = "i";
       }
       if (typeof body === "string") {
-        $(".body", elem).html("<div class='message'><span class='multiline'>" + body + "</span></div>");
+        elem.querySelector(".body").innerHTML = "<div class='message'><span class='multiline'>" + body + "</span></div>";
       } else {
-        $(".body", elem).html("").append(body);
+        elem.querySelector(".body").appendChild(body);
       }
-      elem.appendTo(this.elem);
+      this.elem.appendChild(elem);
       if (timeout) {
-        $(".close", elem).remove();
+        elem.removeChild(elem.querySelector(".close"));
         setTimeout(((function(_this) {
           return function() {
             return _this.close(elem);
           };
         })(this)), timeout);
       }
-      width = Math.min(elem.outerWidth(), 580);
+      width = Math.min(elem.offsetWidth, 580);
       if (!timeout) {
         width += 20;
       }
-      if (elem.outerHeight() > 55) {
-        elem.addClass("long");
+      if (elem.offsetHeight > 55) {
+        elem.classList.add("long");
       }
-      elem.css({
-        "width": "50px",
-        "transform": "scale(0.01)"
-      });
-      elem.animate({
-        "scale": 1
-      }, 800, "easeOutElastic");
-      elem.animate({
-        "width": width
-      }, 700, "easeInOutCubic");
-      $(".body", elem).css({
-        "width": width - 80
-      });
-      $(".body", elem).cssLater("box-shadow", "0px 0px 5px rgba(0,0,0,0.1)", 1000);
-      $(".close, .button", elem).on("click", (function(_this) {
-        return function() {
-          _this.close(elem);
-          return false;
-        };
-      })(this));
-      $(".select", elem).on("click", (function(_this) {
-        return function() {
-          return _this.close(elem);
-        };
-      })(this));
-      $("input", elem).on("keyup", (function(_this) {
-        return function(e) {
-          if (e.keyCode === 13) {
+      elem.querySelector(".body").style.width = (width - 80) + "px";
+      elem.style.height = elem.offsetHeight + "px";
+      elem.style.width = "50px";
+      elem.style.transform = "scale(0.01)";
+      elem.style.transition = "scale 0.8s ease-out, width 0.7s ease-in-out";
+      setTimeout((function() {
+        elem.style.width = width + "px";
+        return elem.style.transform = "scale(1)";
+      }), 30);
+      setTimeout((function() {
+        return elem.style.boxShadow = "0px 0px 5px rgba(0,0,0,0.1)";
+      }), 1000);
+      ref1 = elem.querySelectorAll(".close, .button");
+      for (j = 0, len1 = ref1.length; j < len1; j++) {
+        button = ref1[j];
+        button.addEventListener("click", (function(_this) {
+          return function() {
+            _this.close(elem);
+            return false;
+          };
+        })(this));
+      }
+      select = elem.querySelector(".select");
+      if (select) {
+        select.addEventListener("click", (function(_this) {
+          return function() {
             return _this.close(elem);
-          }
-        };
-      })(this));
+          };
+        })(this));
+      }
+      input = elem.querySelector("input");
+      if (input) {
+        input.addEventListener("keyup", (function(_this) {
+          return function(e) {
+            if (e.keyCode === 13) {
+              return _this.close(elem);
+            }
+          };
+        })(this));
+      }
       return elem;
     };
 
     Notifications.prototype.close = function(elem) {
-      elem.stop().animate({
-        "width": 0,
-        "opacity": 0
-      }, 700, "easeInOutCubic");
-      return elem.slideUp(300, (function() {
-        return elem.remove();
-      }));
+      elem.style.transition = "width 0.7s ease-in-out, opacity 0.7s ease-in-out, height 0.3s ease";
+      elem.style.width = "0";
+      elem.style.opacity = "0";
+      elem.style.height = "0";
+      return setTimeout((function() {
+        return elem.parentNode.removeChild(elem);
+      }), 400);
     };
 
     Notifications.prototype.log = function() {
@@ -744,6 +755,7 @@ $.extend( $.easing,
   window.Notifications = Notifications;
 
 }).call(this);
+
 
 /* ---- Prefix.coffee ---- */
 
@@ -771,11 +783,12 @@ $.extend( $.easing,
           node = document.createElement("link");
           node.rel = "stylesheet";
           node.type = "text/css";
-          node.href = "/media/all.css";
+          node.href = "/uimedia/all.css";
           node.onload = _this.watch;
           return _this.dom.appendChild(node);
         };
       })(this));
+      this.notifications = new Notifications(this.dom);
       this.ws = new ZeroWebsocket(wrapper_key);
       this.ws.route = this.postMessage;
       window.parent = {
@@ -808,6 +821,7 @@ $.extend( $.easing,
 
     Prefix.prototype.watch = function() {
       var css_text, observer, remove_iterator_start, times_removed;
+      this.notifications.test();
       this.node.style.cssText = "position: fixed;\nleft: 0;\ntop: 0;\nright: 0;\nbottom: 0;\nwidth: 100%;\nheight: 100%;\ndisplay: block;\nvisibility: visible;\nopacity: 1;\npointer-events: all;\nz-index: 1000000; /* That should be enough */".replace(/;/g, " !important;");
       css_text = this.node.style.cssText;
       remove_iterator_start = 0;
@@ -988,7 +1002,6 @@ $.extend( $.easing,
   });
 
 }).call(this);
-
 
 /* ---- ZeroWebsocket.coffee ---- */
 

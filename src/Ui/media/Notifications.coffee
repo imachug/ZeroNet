@@ -1,6 +1,8 @@
 class Notifications
-	constructor: (@elem) ->
-		@
+	constructor: (dom) ->
+		@elem = document.createElement("div")
+		@elem.className = "notifications"
+		dom.appendChild @elem
 
 	test: ->
 		setTimeout (=>
@@ -8,78 +10,105 @@ class Notifications
 			@add("message-Anyone", "info", "New  from <b>Anyone</b>.")
 		), 1000
 		setTimeout (=>
-			@add("connection", "done", "<b>UiServer</b> connection recovered.", 5000)
+			@add("connection rec", "done", "<b>UiServer</b> connection recovered.", 5000)
 		), 3000
 
 
 	add: (id, type, body, timeout=0) ->
 		id = id.replace /[^A-Za-z0-9-]/g, ""
 		# Close notifications with same id
-		for elem in $(".notification-#{id}")
-			@close $(elem)
+		for elem in @elem.querySelectorAll(".notification-#{id}")
+			@close elem
 
 		# Create element
-		elem = $(".notification.template", @elem).clone().removeClass("template")
-		elem.addClass("notification-#{type}").addClass("notification-#{id}")
+		elem = document.createElement("div")
+		elem.className = "notification notification-#{type} notification-#{id}"
+		elem.innerHTML = """
+			<span class="notification-icon">!</span>
+			<span class="body">Test notification</span>
+			<a class="close" href="#Close">&times;</a>
+			<div style="clear: both"></div>
+		"""
 		if type == "progress"
-			elem.addClass("notification-done")
+			elem.classList.add "notification-done"
 
 		# Update text
+		icon = elem.querySelector(".notification-icon")
 		if type == "error"
-			$(".notification-icon", elem).html("!")
+			icon.innerHTML = "!"
 		else if type == "done"
-			$(".notification-icon", elem).html("<div class='icon-success'></div>")
+			icon.innerHTML = "<div class='icon-success'></div>"
 		else if type == "progress"
-			$(".notification-icon", elem).html("<div class='icon-success'></div>")
+			icon.innerHTML = "<div class='icon-success'></div>"
 		else if type == "ask"
-			$(".notification-icon", elem).html("?")
+			icon.innerHTML = "?"
 		else
-			$(".notification-icon", elem).html("i")
+			icon.innerHTML = "i"
 
-		if typeof(body) == "string"
-			$(".body", elem).html("<div class='message'><span class='multiline'>"+body+"</span></div>")
+		if typeof body == "string"
+			elem.querySelector(".body").innerHTML = "<div class='message'><span class='multiline'>" + body + "</span></div>"
 		else
-			$(".body", elem).html("").append(body)
+			elem.querySelector(".body").appendChild body
 
-		elem.appendTo(@elem)
+		@elem.appendChild elem
 
 		# Timeout
 		if timeout
-			$(".close", elem).remove() # No need of close button
-			setTimeout (=>
+			elem.removeChild elem.querySelector(".close") # No need of close button
+			setTimeout ( =>
 				@close elem
 			), timeout
 
+		width = Math.min(elem.offsetWidth, 580)
+		if not timeout
+			width += 20 # Add space for close button
+		if elem.offsetHeight > 55
+			elem.classList.add "long"
+		elem.querySelector(".body").style.width = (width - 80) + "px"
+
 		# Animate
-		width = Math.min(elem.outerWidth(), 580)
-		if not timeout then width += 20 # Add space for close button
-		if elem.outerHeight() > 55 then elem.addClass("long")
-		elem.css({"width": "50px", "transform": "scale(0.01)"})
-		elem.animate({"scale": 1}, 800, "easeOutElastic")
-		elem.animate({"width": width}, 700, "easeInOutCubic")
-		$(".body", elem).css("width": (width - 80))
-		$(".body", elem).cssLater("box-shadow", "0px 0px 5px rgba(0,0,0,0.1)", 1000)
+		elem.style.height = elem.offsetHeight + "px"
+		elem.style.width = "50px"
+		elem.style.transform = "scale(0.01)"
+		elem.style.transition = "scale 0.8s ease-out, width 0.7s ease-in-out"
+		setTimeout ( ->
+			elem.style.width = width + "px"
+			elem.style.transform = "scale(1)"
+		), 30
+		setTimeout ( ->
+			elem.style.boxShadow = "0px 0px 5px rgba(0,0,0,0.1)"
+		), 1000
 
 		# Close button or Confirm button
-		$(".close, .button", elem).on "click", =>
-			@close elem
-			return false
+		for button in elem.querySelectorAll(".close, .button")
+			button.addEventListener "click", =>
+				@close elem
+				return false
 
 		# Select list
-		$(".select", elem).on "click", =>
-			@close elem
+		select = elem.querySelector(".select")
+		if select
+			select.addEventListener "click", =>
+				@close elem
 
 		# Input enter
-		$("input", elem).on "keyup", (e) =>
-			if e.keyCode == 13
-				@close elem
+		input = elem.querySelector("input")
+		if input
+			input.addEventListener "keyup", (e) =>
+				if e.keyCode == 13
+					@close elem
 
 		return elem
 
 
 	close: (elem) ->
-		elem.stop().animate {"width": 0, "opacity": 0}, 700, "easeInOutCubic"
-		elem.slideUp 300, (-> elem.remove())
+		elem.style.transition = "width 0.7s ease-in-out, opacity 0.7s ease-in-out, height 0.3s ease"
+		elem.style.width = "0"
+		elem.style.opacity = "0"
+		elem.style.height = "0"
+		setTimeout (->
+			elem.parentNode.removeChild elem
+		), 400
 
 
 	log: (args...) ->
