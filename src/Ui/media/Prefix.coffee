@@ -1,6 +1,8 @@
 class Prefix
 	constructor: ->
 		@siteAddress = location.pathname.replace("/", "").split("/")[0]
+		@postMessage = window.postMessage.bind(window)
+		@open = window.open.bind(window)
 		# Create ZeroNet UI node
 		@node = document.createElement("zeronet-shadow-dom-ui")
 		document.documentElement.appendChild @node
@@ -109,7 +111,7 @@ class Prefix
 	handleMessage: (message) =>
 		if message.cmd == "innerReady"
 			# Doesn't make sense without an iframe, here just for completeness
-			window.postMessage {cmd: "wrapperOpenedWebsocket"}, "*"
+			@postMessage {cmd: "wrapperOpenedWebsocket"}, "*"
 		else if message.cmd == "innerLoaded" or message.cmd == "wrapperInnerLoaded"
 			# The command name makes little sense without an iframe, but it's
 			# still sometimes useful nevertheless
@@ -146,7 +148,13 @@ class Prefix
 			history.replaceState message.params[0], message.params[1], url
 		else if message.cmd == "wrapperGetState"
 			# For compatibility
-			window.postMessage {cmd: "response", to: message.id, result: history.state}
+			@postMessage {cmd: "response", to: message.id, result: history.state}
+		else if message.cmd == "wrapperOpenWindow"
+			# For compatibility
+			if typeof message.params == "string"
+				@open(message.params)
+			else
+				@open(message.params[0], message.params[1], message.params[2])
 		else
 			console.log message
 			@gate.send message

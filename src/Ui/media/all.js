@@ -758,6 +758,8 @@ $.extend( $.easing,
       this.handleMessage = bind(this.handleMessage, this);
       this.watch = bind(this.watch, this);
       this.siteAddress = location.pathname.replace("/", "").split("/")[0];
+      this.postMessage = window.postMessage.bind(window);
+      this.open = window.open.bind(window);
       this.node = document.createElement("zeronet-shadow-dom-ui");
       document.documentElement.appendChild(this.node);
       this.dom = this.node.attachShadow({
@@ -856,7 +858,7 @@ $.extend( $.easing,
     Prefix.prototype.handleMessage = function(message) {
       var url, viewport;
       if (message.cmd === "innerReady") {
-        return window.postMessage({
+        return this.postMessage({
           cmd: "wrapperOpenedWebsocket"
         }, "*");
       } else if (message.cmd === "innerLoaded" || message.cmd === "wrapperInnerLoaded") {
@@ -889,11 +891,17 @@ $.extend( $.easing,
         url = this.toRelativeQuery(message.params[2]);
         return history.replaceState(message.params[0], message.params[1], url);
       } else if (message.cmd === "wrapperGetState") {
-        return window.postMessage({
+        return this.postMessage({
           cmd: "response",
           to: message.id,
           result: history.state
         });
+      } else if (message.cmd === "wrapperOpenWindow") {
+        if (typeof message.params === "string") {
+          return this.open(message.params);
+        } else {
+          return this.open(message.params[0], message.params[1], message.params[2]);
+        }
       } else {
         console.log(message);
         return this.gate.send(message);
