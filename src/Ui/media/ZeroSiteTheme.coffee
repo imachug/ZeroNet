@@ -1,3 +1,4 @@
+return
 DARK = "(prefers-color-scheme: dark)"
 LIGHT = "(prefers-color-scheme: light)"
 
