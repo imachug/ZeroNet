@@ -133,9 +133,20 @@ class Prefix
 			else if message.cmd == "wrapperConfirm"
 				captions = message.params[1]
 				captions ?= "ok"
-				@displayConfirm message.params[0], captions, (res) =>
+				@displayConfirm @toHtmlSafe(message.params[0]), captions, (res) =>
 					@postMessage {cmd: "response", to: message.id, result: res}
 					return false
+			else if message.cmd == "wrapperPrompt"
+				prompt = @toHtmlSafe(message.params[0])
+				type = message.params[1]
+				type ?= "text"
+				caption = message.params[2]
+				caption ?= "OK"
+				placeholder = message.params[3]
+				placeholder ?= ""
+
+				@displayPrompt prompt, type, caption, placeholder, (res) =>
+					@postMessage {"cmd": "response", "to": message.id, "result": res}
 			else if message.cmd == "wrapperSetViewport"
 				# For compatibility
 				viewport = document.querySelector("meta[name=viewport]")
@@ -188,23 +199,19 @@ class Prefix
 
 
 	toHtmlSafe: (values) ->
-		if values not instanceof Array
-			# Convert to array if it isn't
-			values = [values]
-		for value, i in values
-			if value instanceof Array
-				value = @toHtmlSafe(value)
-			else
-				# Escape dangerous characters
-				value = String(value)
-					.replace(/&/g, "&amp;")
-					.replace(/</g, "&lt;")
-					.replace(/>/g, "&gt;")
-					.replace(/"/g, "&quot;")
-					.replace(/"/g, "&apos;")
-				# Unescape b, i, u, br tags
-				value = value.replace(/&lt;(\/?(?:br|b|u|i|small))&gt;/g, "<$1>")
-			values[i] = value
+		if values instanceof Array
+			for value, i in values
+				values[i] = @toHtmlSafe(value)
+		else
+			# Escape dangerous characters
+			value = String(value)
+				.replace(/&/g, "&amp;")
+				.replace(/</g, "&lt;")
+				.replace(/>/g, "&gt;")
+				.replace(/"/g, "&quot;")
+				.replace(/"/g, "&apos;")
+			# Unescape b, i, u, br tags
+			value = value.replace(/&lt;(\/?(?:br|b|u|i|small))&gt;/g, "<$1>")
 		return values
 
 
@@ -224,13 +231,41 @@ class Prefix
 			button.textContent = caption
 			((button) =>
 				button.addEventListener "click", (e) =>
-					cb(parseInt(e.currentTarget.dataset.value))
+					cb parseInt(e.currentTarget.dataset.value)
 					return false
 			)(button)
-			buttons.appendChild(button)
-		@notifications.add("notification-#{caption}", "ask", body)
+			buttons.appendChild button
+		@notifications.add "notification-#{caption}", "ask", body
 
 		buttons.firstChild.focus()
+
+
+	displayPrompt: (message, type, caption, placeholder, cb) ->
+		body = document.createElement("span")
+		body.className = "message"
+		body.innerHTML = message
+
+		input = document.createElement("input")
+		input.type = type
+		input.className = "input button-#{type}"
+		input.placeholder = placeholder
+		input.addEventListener "keyup", (e) => # Send on enter
+			if e.keyCode == 13
+				cb input.value
+		body.appendChild input
+
+		button = document.createElement("a")
+		button.href = "#" + caption
+		button.className = "button button-#{caption}"
+		button.textContent = caption
+		button.addEventListener "click", (e) => # Response on button click
+			cb input.value
+			return false
+		body.appendChild button
+
+		@notifications.add "notification-#{message.id}", "ask", body
+
+		input.focus()
 
 
 

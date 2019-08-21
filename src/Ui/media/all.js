@@ -768,7 +768,6 @@ $.extend( $.easing,
 
 }).call(this);
 
-
 /* ---- Prefix.coffee ---- */
 
 
@@ -892,7 +891,7 @@ $.extend( $.easing,
     Prefix.prototype.handleMessage = function(message) {
       return this.load_event.then((function(_this) {
         return function() {
-          var captions, url, viewport;
+          var caption, captions, placeholder, prompt, type, url, viewport;
           if (message.cmd === "innerReady") {
             return _this.postMessage({
               cmd: "wrapperOpenedWebsocket"
@@ -908,13 +907,40 @@ $.extend( $.easing,
             } else {
               captions = "ok";
             };
-            return _this.displayConfirm(message.params[0], captions, function(res) {
+            return _this.displayConfirm(_this.toHtmlSafe(message.params[0]), captions, function(res) {
               _this.postMessage({
                 cmd: "response",
                 to: message.id,
                 result: res
               });
               return false;
+            });
+          } else if (message.cmd === "wrapperPrompt") {
+            prompt = _this.toHtmlSafe(message.params[0]);
+            type = message.params[1];
+                        if (type != null) {
+              type;
+            } else {
+              type = "text";
+            };
+            caption = message.params[2];
+                        if (caption != null) {
+              caption;
+            } else {
+              caption = "OK";
+            };
+            placeholder = message.params[3];
+                        if (placeholder != null) {
+              placeholder;
+            } else {
+              placeholder = "";
+            };
+            return _this.displayPrompt(prompt, type, caption, placeholder, function(res) {
+              return _this.postMessage({
+                "cmd": "response",
+                "to": message.id,
+                "result": res
+              });
             });
           } else if (message.cmd === "wrapperSetViewport") {
             viewport = document.querySelector("meta[name=viewport]");
@@ -974,18 +1000,14 @@ $.extend( $.easing,
 
     Prefix.prototype.toHtmlSafe = function(values) {
       var i, j, len, value;
-      if (!(values instanceof Array)) {
-        values = [values];
-      }
-      for (i = j = 0, len = values.length; j < len; i = ++j) {
-        value = values[i];
-        if (value instanceof Array) {
-          value = this.toHtmlSafe(value);
-        } else {
-          value = String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/"/g, "&apos;");
-          value = value.replace(/&lt;(\/?(?:br|b|u|i|small))&gt;/g, "<$1>");
+      if (values instanceof Array) {
+        for (i = j = 0, len = values.length; j < len; i = ++j) {
+          value = values[i];
+          values[i] = this.toHtmlSafe(value);
         }
-        values[i] = value;
+      } else {
+        value = String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/"/g, "&apos;");
+        value = value.replace(/&lt;(\/?(?:br|b|u|i|small))&gt;/g, "<$1>");
       }
       return values;
     };
@@ -1021,6 +1043,38 @@ $.extend( $.easing,
       return buttons.firstChild.focus();
     };
 
+    Prefix.prototype.displayPrompt = function(message, type, caption, placeholder, cb) {
+      var body, button, input;
+      body = document.createElement("span");
+      body.className = "message";
+      body.innerHTML = message;
+      input = document.createElement("input");
+      input.type = type;
+      input.className = "input button-" + type;
+      input.placeholder = placeholder;
+      input.addEventListener("keyup", (function(_this) {
+        return function(e) {
+          if (e.keyCode === 13) {
+            return cb(input.value);
+          }
+        };
+      })(this));
+      body.appendChild(input);
+      button = document.createElement("a");
+      button.href = "#" + caption;
+      button.className = "button button-" + caption;
+      button.textContent = caption;
+      button.addEventListener("click", (function(_this) {
+        return function(e) {
+          cb(input.value);
+          return false;
+        };
+      })(this));
+      body.appendChild(button);
+      this.notifications.add("notification-" + message.id, "ask", body);
+      return input.focus();
+    };
+
     return Prefix;
 
   })();
@@ -1028,6 +1082,7 @@ $.extend( $.easing,
   window.Prefix = Prefix;
 
 }).call(this);
+
 
 /* ---- ZeroSiteTheme.coffee ---- */
 
