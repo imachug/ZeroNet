@@ -764,7 +764,6 @@ $.extend( $.easing,
 
 }).call(this);
 
-
 /* ---- Prefix.coffee ---- */
 
 
@@ -781,7 +780,13 @@ $.extend( $.easing,
       this.postMessage = window.postMessage.bind(window);
       this.open = window.open.bind(window);
       this.node = document.createElement("zeronet-shadow-dom-ui");
+      this.node.style.display = "none";
       document.documentElement.appendChild(this.node);
+      this.load_event = new Promise((function(_this) {
+        return function(resolve) {
+          return _this.onLoad = resolve;
+        };
+      })(this));
       this.dom = this.node.attachShadow({
         mode: "closed"
       });
@@ -829,6 +834,7 @@ $.extend( $.easing,
 
     Prefix.prototype.watch = function() {
       var css_text, observer, remove_iterator_start, times_removed;
+      this.onLoad();
       this.node.style.cssText = "position: fixed;\nleft: 0;\ntop: 0;\nright: 0;\nbottom: 0;\nwidth: 100%;\nheight: 100%;\ndisplay: block;\nvisibility: visible;\nopacity: 1;\npointer-events: all;\nz-index: 1000000; /* That should be enough */".replace(/;/g, " !important;");
       css_text = this.node.style.cssText;
       remove_iterator_start = 0;
@@ -878,59 +884,63 @@ $.extend( $.easing,
     };
 
     Prefix.prototype.handleMessage = function(message) {
-      var url, viewport;
-      if (message.cmd === "innerReady") {
-        return this.postMessage({
-          cmd: "wrapperOpenedWebsocket"
-        }, "*");
-      } else if (message.cmd === "innerLoaded" || message.cmd === "wrapperInnerLoaded") {
-        return location.hash = location.hash;
-      } else if (message.cmd === "wrapperNotification") {
-        return this.notifications.add("notification-" + message.id, message.params[0], "<span class='message'>" + this.toHtmlSafe(message.params[1]) + "</span>", message.params[2]);
-      } else if (message.cmd === "wrapperSetViewport") {
-        viewport = document.querySelector("meta[name=viewport]");
-        if (!viewport) {
-          viewport = document.createElement("meta");
-          viewport.name = "viewport";
-          document.head.appendChild(viewport);
-        }
-        return viewport.content = message.params;
-      } else if (message.cmd === "wrapperSetTitle") {
-        return document.title = message.params;
-      } else if (message.cmd === "wrapperReload") {
-        url = message.params[0];
-        if (url) {
-          if (location.href.toString().indexOf("?") > 0) {
-            return location.href += "&" + url;
+      return this.load_event.then((function(_this) {
+        return function() {
+          var url, viewport;
+          if (message.cmd === "innerReady") {
+            return _this.postMessage({
+              cmd: "wrapperOpenedWebsocket"
+            }, "*");
+          } else if (message.cmd === "innerLoaded" || message.cmd === "wrapperInnerLoaded") {
+            return location.hash = location.hash;
+          } else if (message.cmd === "wrapperNotification") {
+            return _this.notifications.add("notification-" + message.id, message.params[0], "<span class='message'>" + _this.toHtmlSafe(message.params[1]) + "</span>", message.params[2]);
+          } else if (message.cmd === "wrapperSetViewport") {
+            viewport = document.querySelector("meta[name=viewport]");
+            if (!viewport) {
+              viewport = document.createElement("meta");
+              viewport.name = "viewport";
+              document.head.appendChild(viewport);
+            }
+            return viewport.content = message.params;
+          } else if (message.cmd === "wrapperSetTitle") {
+            return document.title = message.params;
+          } else if (message.cmd === "wrapperReload") {
+            url = message.params[0];
+            if (url) {
+              if (location.href.toString().indexOf("?") > 0) {
+                return location.href += "&" + url;
+              } else {
+                return location.href += "?" + url;
+              }
+            } else {
+              return location.reload();
+            }
+          } else if (message.cmd === "wrapperPushState") {
+            url = _this.toRelativeQuery(message.params[2]);
+            return history.pushState(message.params[0], message.params[1], url);
+          } else if (message.cmd === "wrapperReplaceState") {
+            url = _this.toRelativeQuery(message.params[2]);
+            return history.replaceState(message.params[0], message.params[1], url);
+          } else if (message.cmd === "wrapperGetState") {
+            return _this.postMessage({
+              cmd: "response",
+              to: message.id,
+              result: history.state
+            });
+          } else if (message.cmd === "wrapperOpenWindow") {
+            if (typeof message.params === "string") {
+              return _this.open(message.params);
+            } else {
+              return _this.open(message.params[0], message.params[1], message.params[2]);
+            }
+          } else if (message.cmd === "wrapperRequestFullscreen") {
+            return document.documentElement.requestFullscreen();
           } else {
-            return location.href += "?" + url;
+            return _this.ws.send(message);
           }
-        } else {
-          return location.reload();
-        }
-      } else if (message.cmd === "wrapperPushState") {
-        url = this.toRelativeQuery(message.params[2]);
-        return history.pushState(message.params[0], message.params[1], url);
-      } else if (message.cmd === "wrapperReplaceState") {
-        url = this.toRelativeQuery(message.params[2]);
-        return history.replaceState(message.params[0], message.params[1], url);
-      } else if (message.cmd === "wrapperGetState") {
-        return this.postMessage({
-          cmd: "response",
-          to: message.id,
-          result: history.state
-        });
-      } else if (message.cmd === "wrapperOpenWindow") {
-        if (typeof message.params === "string") {
-          return this.open(message.params);
-        } else {
-          return this.open(message.params[0], message.params[1], message.params[2]);
-        }
-      } else if (message.cmd === "wrapperRequestFullscreen") {
-        return document.documentElement.requestFullscreen();
-      } else {
-        return this.ws.send(message);
-      }
+        };
+      })(this));
     };
 
     Prefix.prototype.toRelativeQuery = function(query) {

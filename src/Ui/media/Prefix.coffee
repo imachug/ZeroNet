@@ -5,8 +5,10 @@ class Prefix
 		@open = window.open.bind(window)
 		# Create ZeroNet UI node
 		@node = document.createElement("zeronet-shadow-dom-ui")
+		@node.style.display = "none"
 		document.documentElement.appendChild @node
 		# Attach shadow dom
+		@load_event = new Promise((resolve) => @onLoad = resolve)
 		@dom = @node.attachShadow({mode: "closed"})
 		document.addEventListener "DOMContentLoaded", =>
 			# Load styles
@@ -43,6 +45,7 @@ class Prefix
 
 
 	watch: =>
+		@onLoad()
 		# Setup CSS
 		@node.style.cssText = """
 			position: fixed;
@@ -111,63 +114,64 @@ class Prefix
 
 
 	handleMessage: (message) =>
-		if message.cmd == "innerReady"
-			# Doesn't make sense without an iframe, here just for completeness
-			@postMessage {cmd: "wrapperOpenedWebsocket"}, "*"
-		else if message.cmd == "innerLoaded" or message.cmd == "wrapperInnerLoaded"
-			# The command name makes little sense without an iframe, but it's
-			# still sometimes useful nevertheless
-			# TODO: check whether this navigation way actually works
-			location.hash = location.hash
-		else if message.cmd == "wrapperNotification"
-			@notifications.add(
-				"notification-#{message.id}",
-				message.params[0],
-				"<span class='message'>" + @toHtmlSafe(message.params[1]) + "</span>",
-				message.params[2]
-			)
-		else if message.cmd == "wrapperSetViewport"
-			# For compatibility
-			viewport = document.querySelector("meta[name=viewport]")
-			if not viewport
-				viewport = document.createElement("meta")
-				viewport.name = "viewport"
-				document.head.appendChild viewport
-			viewport.content = message.params
-		else if message.cmd == "wrapperSetTitle"
-			# For compatibility
-			document.title = message.params
-		else if message.cmd == "wrapperReload"
-			# For compatibility
-			url = message.params[0]
-			if url
-				if location.href.toString().indexOf("?") > 0
-					location.href += "&" + url
+		@load_event.then =>
+			if message.cmd == "innerReady"
+				# Doesn't make sense without an iframe, here just for completeness
+				@postMessage {cmd: "wrapperOpenedWebsocket"}, "*"
+			else if message.cmd == "innerLoaded" or message.cmd == "wrapperInnerLoaded"
+				# The command name makes little sense without an iframe, but it's
+				# still sometimes useful nevertheless
+				# TODO: check whether this navigation way actually works
+				location.hash = location.hash
+			else if message.cmd == "wrapperNotification"
+				@notifications.add(
+					"notification-#{message.id}",
+					message.params[0],
+					"<span class='message'>" + @toHtmlSafe(message.params[1]) + "</span>",
+					message.params[2]
+				)
+			else if message.cmd == "wrapperSetViewport"
+				# For compatibility
+				viewport = document.querySelector("meta[name=viewport]")
+				if not viewport
+					viewport = document.createElement("meta")
+					viewport.name = "viewport"
+					document.head.appendChild viewport
+				viewport.content = message.params
+			else if message.cmd == "wrapperSetTitle"
+				# For compatibility
+				document.title = message.params
+			else if message.cmd == "wrapperReload"
+				# For compatibility
+				url = message.params[0]
+				if url
+					if location.href.toString().indexOf("?") > 0
+						location.href += "&" + url
+					else
+						location.href += "?" + url
 				else
-					location.href += "?" + url
+					location.reload()
+			else if message.cmd == "wrapperPushState"
+				# For compatibility
+				url = @toRelativeQuery(message.params[2])
+				history.pushState message.params[0], message.params[1], url
+			else if message.cmd == "wrapperReplaceState"
+				# For compatibility
+				url = @toRelativeQuery(message.params[2])
+				history.replaceState message.params[0], message.params[1], url
+			else if message.cmd == "wrapperGetState"
+				# For compatibility
+				@postMessage {cmd: "response", to: message.id, result: history.state}
+			else if message.cmd == "wrapperOpenWindow"
+				# For compatibility
+				if typeof message.params == "string"
+					@open(message.params)
+				else
+					@open(message.params[0], message.params[1], message.params[2])
+			else if message.cmd == "wrapperRequestFullscreen"
+				document.documentElement.requestFullscreen()
 			else
-				location.reload()
-		else if message.cmd == "wrapperPushState"
-			# For compatibility
-			url = @toRelativeQuery(message.params[2])
-			history.pushState message.params[0], message.params[1], url
-		else if message.cmd == "wrapperReplaceState"
-			# For compatibility
-			url = @toRelativeQuery(message.params[2])
-			history.replaceState message.params[0], message.params[1], url
-		else if message.cmd == "wrapperGetState"
-			# For compatibility
-			@postMessage {cmd: "response", to: message.id, result: history.state}
-		else if message.cmd == "wrapperOpenWindow"
-			# For compatibility
-			if typeof message.params == "string"
-				@open(message.params)
-			else
-				@open(message.params[0], message.params[1], message.params[2])
-		else if message.cmd == "wrapperRequestFullscreen"
-			document.documentElement.requestFullscreen()
-		else
-			@ws.send message
+				@ws.send message
 
 
 	toRelativeQuery: (query) ->
