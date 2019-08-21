@@ -155,6 +155,8 @@ class Prefix
 				@open(message.params)
 			else
 				@open(message.params[0], message.params[1], message.params[2])
+		else if message.cmd == "wrapperRequestFullscreen"
+			document.documentElement.requestFullscreen()
 		else
 			console.log message
 			@gate.send message

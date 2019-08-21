@@ -902,6 +902,8 @@ $.extend( $.easing,
         } else {
           return this.open(message.params[0], message.params[1], message.params[2]);
         }
+      } else if (message.cmd === "wrapperRequestFullscreen") {
+        return document.documentElement.requestFullscreen();
       } else {
         console.log(message);
         return this.gate.send(message);
