@@ -70,10 +70,13 @@ class Notifications
 		elem.style.height = elem.offsetHeight + "px"
 		elem.style.width = "50px"
 		elem.style.transform = "scale(0.01)"
-		elem.style.transition = "scale 0.8s ease-out, width 0.7s ease-in-out"
 		setTimeout ( ->
-			elem.style.width = width + "px"
+			elem.style.transition = "transform 0.4s cubic-bezier(.17,3.11,.51,.36)"
 			elem.style.transform = "scale(1)"
+			setTimeout ( ->
+				elem.style.transition = "width 0.7s ease-in-out"
+				elem.style.width = width + "px"
+			), 800
 		), 30
 		setTimeout ( ->
 			elem.style.boxShadow = "0px 0px 5px rgba(0,0,0,0.1)"
@@ -102,13 +105,23 @@ class Notifications
 
 
 	close: (elem) ->
-		elem.style.transition = "width 0.7s ease-in-out, opacity 0.7s ease-in-out, height 0.3s ease"
+		elem.style.transition = """
+			width 0.7s ease-in-out,
+			opacity 0.7s ease-in-out,
+			height 0.3s ease-in-out,
+			margin 0.3s ease-in-out,
+			padding 0.3s ease-in-out
+		"""
 		elem.style.width = "0"
 		elem.style.opacity = "0"
 		elem.style.height = "0"
+		elem.style.marginTop = "0"
+		elem.style.marginBottom = "0"
+		elem.style.paddingTop = "0"
+		elem.style.paddingBottom = "0"
 		setTimeout (->
 			elem.parentNode.removeChild elem
-		), 400
+		), 1000
 
 
 	log: (args...) ->
