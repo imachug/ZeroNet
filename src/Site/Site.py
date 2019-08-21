@@ -49,7 +49,6 @@ class Site(object):
         self.notifications = []  # Pending notifications displayed once on page load [error|ok|info, message, timeout]
         self.page_requested = False  # Page viewed in browser
         self.websockets = []  # Active site websocket connections
-        self.wrapper_nonces = set()  # Pending nonces for iframe gates
 
         self.connection_server = None
         self.loadSettings(settings)  # Load settings from sites.json
