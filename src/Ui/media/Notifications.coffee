@@ -50,9 +50,14 @@ class Notifications
 		if typeof body == "string"
 			elem.querySelector(".body").innerHTML = "<div class='message'><span class='multiline'>" + body + "</span></div>"
 		else
+			elem.querySelector(".body").innerHTML = ""
 			elem.querySelector(".body").appendChild body
 
 		@elem.appendChild elem
+
+		setTimeout ( ->
+			elem.scrollLeft = 0
+		), 30
 
 		# Timeout
 		if timeout

@@ -672,9 +672,13 @@ $.extend( $.easing,
       if (typeof body === "string") {
         elem.querySelector(".body").innerHTML = "<div class='message'><span class='multiline'>" + body + "</span></div>";
       } else {
+        elem.querySelector(".body").innerHTML = "";
         elem.querySelector(".body").appendChild(body);
       }
       this.elem.appendChild(elem);
+      setTimeout((function() {
+        return elem.scrollLeft = 0;
+      }), 30);
       if (timeout) {
         elem.removeChild(elem.querySelector(".close"));
         setTimeout(((function(_this) {
@@ -764,6 +768,7 @@ $.extend( $.easing,
 
 }).call(this);
 
+
 /* ---- Prefix.coffee ---- */
 
 
@@ -774,6 +779,7 @@ $.extend( $.easing,
 
   Prefix = (function() {
     function Prefix(wrapper_key) {
+      this.displayConfirm = bind(this.displayConfirm, this);
       this.handleMessage = bind(this.handleMessage, this);
       this.watch = bind(this.watch, this);
       this.siteAddress = location.pathname.replace("/", "").split("/")[0];
@@ -886,7 +892,7 @@ $.extend( $.easing,
     Prefix.prototype.handleMessage = function(message) {
       return this.load_event.then((function(_this) {
         return function() {
-          var url, viewport;
+          var captions, url, viewport;
           if (message.cmd === "innerReady") {
             return _this.postMessage({
               cmd: "wrapperOpenedWebsocket"
@@ -895,6 +901,21 @@ $.extend( $.easing,
             return location.hash = location.hash;
           } else if (message.cmd === "wrapperNotification") {
             return _this.notifications.add("notification-" + message.id, message.params[0], "<span class='message'>" + _this.toHtmlSafe(message.params[1]) + "</span>", message.params[2]);
+          } else if (message.cmd === "wrapperConfirm") {
+            captions = message.params[1];
+                        if (captions != null) {
+              captions;
+            } else {
+              captions = "ok";
+            };
+            return _this.displayConfirm(message.params[0], captions, function(res) {
+              _this.postMessage({
+                cmd: "response",
+                to: message.id,
+                result: res
+              });
+              return false;
+            });
           } else if (message.cmd === "wrapperSetViewport") {
             viewport = document.querySelector("meta[name=viewport]");
             if (!viewport) {
@@ -969,6 +990,37 @@ $.extend( $.easing,
       return values;
     };
 
+    Prefix.prototype.displayConfirm = function(body_text, captions, cb) {
+      var body, button, buttons, caption, fn, i, j, len;
+      if (!(captions instanceof Array)) {
+        captions = [captions];
+      }
+      body = document.createElement("span");
+      body.className = "message-outer";
+      body.innerHTML = "<span class='message'>" + body_text + "</span><span class='buttons'></span>";
+      buttons = body.querySelector(".buttons");
+      fn = (function(_this) {
+        return function(button) {
+          return button.addEventListener("click", function(e) {
+            cb(parseInt(e.currentTarget.dataset.value));
+            return false;
+          });
+        };
+      })(this);
+      for (i = j = 0, len = captions.length; j < len; i = ++j) {
+        caption = captions[i];
+        button = document.createElement("a");
+        button.href = "#" + caption;
+        button.className = "button button-confirm button-" + caption + " button-" + (i + 1);
+        button.dataset.value = i + 1;
+        button.textContent = caption;
+        fn(button);
+        buttons.appendChild(button);
+      }
+      this.notifications.add("notification-" + caption, "ask", body);
+      return buttons.firstChild.focus();
+    };
+
     return Prefix;
 
   })();
@@ -976,7 +1028,6 @@ $.extend( $.easing,
   window.Prefix = Prefix;
 
 }).call(this);
-
 
 /* ---- ZeroSiteTheme.coffee ---- */
 

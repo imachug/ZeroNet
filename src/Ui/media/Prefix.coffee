@@ -130,6 +130,12 @@ class Prefix
 					"<span class='message'>" + @toHtmlSafe(message.params[1]) + "</span>",
 					message.params[2]
 				)
+			else if message.cmd == "wrapperConfirm"
+				captions = message.params[1]
+				captions ?= "ok"
+				@displayConfirm message.params[0], captions, (res) =>
+					@postMessage {cmd: "response", to: message.id, result: res}
+					return false
 			else if message.cmd == "wrapperSetViewport"
 				# For compatibility
 				viewport = document.querySelector("meta[name=viewport]")
@@ -200,6 +206,31 @@ class Prefix
 				value = value.replace(/&lt;(\/?(?:br|b|u|i|small))&gt;/g, "<$1>")
 			values[i] = value
 		return values
+
+
+	displayConfirm: (body_text, captions, cb) =>
+		if captions not instanceof Array
+			captions = [captions]  # Convert to list if necessary
+		body = document.createElement("span")
+		body.className = "message-outer"
+		body.innerHTML = "<span class='message'>" + body_text + "</span><span class='buttons'></span>"
+		buttons = body.querySelector(".buttons")
+		for caption, i in captions
+			# Add confirm button
+			button = document.createElement("a")
+			button.href = "#" + caption
+			button.className = "button button-confirm button-#{caption} button-#{i+1}"
+			button.dataset.value = i + 1
+			button.textContent = caption
+			((button) =>
+				button.addEventListener "click", (e) =>
+					cb(parseInt(e.currentTarget.dataset.value))
+					return false
+			)(button)
+			buttons.appendChild(button)
+		@notifications.add("notification-#{caption}", "ask", body)
+
+		buttons.firstChild.focus()
 
 
 
