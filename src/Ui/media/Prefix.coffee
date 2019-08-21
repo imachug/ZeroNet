@@ -43,7 +43,6 @@ class Prefix
 
 
 	watch: =>
-		@notifications.test()
 		# Setup CSS
 		@node.style.cssText = """
 			position: fixed;
@@ -120,6 +119,13 @@ class Prefix
 			# still sometimes useful nevertheless
 			# TODO: check whether this navigation way actually works
 			location.hash = location.hash
+		else if message.cmd == "wrapperNotification"
+			@notifications.add(
+				"notification-#{message.id}",
+				message.params[0],
+				"<span class='message'>" + @toHtmlSafe(message.params[1]) + "</span>",
+				message.params[2]
+			)
 		else if message.cmd == "wrapperSetViewport"
 			# For compatibility
 			viewport = document.querySelector("meta[name=viewport]")
@@ -169,6 +175,28 @@ class Prefix
 			return "?" + query
 		else
 			return query
+
+
+	toHtmlSafe: (values) ->
+		if values not instanceof Array
+			# Convert to array if it isn't
+			values = [values]
+		for value, i in values
+			if value instanceof Array
+				value = @toHtmlSafe(value)
+			else
+				# Escape dangerous characters
+				value = String(value)
+					.replace(/&/g, "&amp;")
+					.replace(/</g, "&lt;")
+					.replace(/>/g, "&gt;")
+					.replace(/"/g, "&quot;")
+					.replace(/"/g, "&apos;")
+				# Unescape b, i, u, br tags
+				value = value.replace(/&lt;(\/?(?:br|b|u|i|small))&gt;/g, "<$1>")
+			values[i] = value
+		return values
+
 
 
 window.Prefix = Prefix

@@ -15,7 +15,9 @@ class Notifications
 
 
 	add: (id, type, body, timeout=0) ->
-		id = id.replace /[^A-Za-z0-9-]/g, ""
+		type = type.replace(/[^a-z]/g, "")
+
+		id = id.replace(/[^A-Za-z0-9-]/g, "")
 		# Close notifications with same id
 		for elem in @elem.querySelectorAll(".notification-#{id}")
 			@close elem

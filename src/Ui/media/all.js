@@ -644,6 +644,7 @@ $.extend( $.easing,
       if (timeout == null) {
         timeout = 0;
       }
+      type = type.replace(/[^a-z]/g, "");
       id = id.replace(/[^A-Za-z0-9-]/g, "");
       ref = this.elem.querySelectorAll(".notification-" + id);
       for (i = 0, len = ref.length; i < len; i++) {
@@ -828,17 +829,16 @@ $.extend( $.easing,
 
     Prefix.prototype.watch = function() {
       var css_text, observer, remove_iterator_start, times_removed;
-      this.notifications.test();
       this.node.style.cssText = "position: fixed;\nleft: 0;\ntop: 0;\nright: 0;\nbottom: 0;\nwidth: 100%;\nheight: 100%;\ndisplay: block;\nvisibility: visible;\nopacity: 1;\npointer-events: all;\nz-index: 1000000; /* That should be enough */".replace(/;/g, " !important;");
       css_text = this.node.style.cssText;
       remove_iterator_start = 0;
       times_removed = 0;
       observer = new MutationObserver((function(_this) {
         return function(mutations) {
-          var css_changed, i, len, mutation, ref, removeIteratorStart, results, timesRemoved;
+          var css_changed, j, len, mutation, ref, removeIteratorStart, results, timesRemoved;
           results = [];
-          for (i = 0, len = mutations.length; i < len; i++) {
-            mutation = mutations[i];
+          for (j = 0, len = mutations.length; j < len; j++) {
+            mutation = mutations[j];
             css_changed = mutation.attributeName === "style" && _this.node.style.cssText !== css_text;
             if ((ref = _this.node, indexOf.call(mutation.removedNodes, ref) >= 0) || css_changed) {
               if (Date.now() - removeIteratorStart > 1000) {
@@ -885,6 +885,8 @@ $.extend( $.easing,
         }, "*");
       } else if (message.cmd === "innerLoaded" || message.cmd === "wrapperInnerLoaded") {
         return location.hash = location.hash;
+      } else if (message.cmd === "wrapperNotification") {
+        return this.notifications.add("notification-" + message.id, message.params[0], "<span class='message'>" + this.toHtmlSafe(message.params[1]) + "</span>", message.params[2]);
       } else if (message.cmd === "wrapperSetViewport") {
         viewport = document.querySelector("meta[name=viewport]");
         if (!viewport) {
@@ -939,6 +941,24 @@ $.extend( $.easing,
       }
     };
 
+    Prefix.prototype.toHtmlSafe = function(values) {
+      var i, j, len, value;
+      if (!(values instanceof Array)) {
+        values = [values];
+      }
+      for (i = j = 0, len = values.length; j < len; i = ++j) {
+        value = values[i];
+        if (value instanceof Array) {
+          value = this.toHtmlSafe(value);
+        } else {
+          value = String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/"/g, "&apos;");
+          value = value.replace(/&lt;(\/?(?:br|b|u|i|small))&gt;/g, "<$1>");
+        }
+        values[i] = value;
+      }
+      return values;
+    };
+
     return Prefix;
 
   })();
@@ -946,6 +966,7 @@ $.extend( $.easing,
   window.Prefix = Prefix;
 
 }).call(this);
+
 
 /* ---- ZeroSiteTheme.coffee ---- */
 
