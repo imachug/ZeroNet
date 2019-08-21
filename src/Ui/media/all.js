@@ -333,7 +333,7 @@ $.extend( $.easing,
       var fixbutton, fixbutton_bg, fixbutton_burger, fixbutton_text;
       fixbutton = document.createElement("div");
       fixbutton.className = "fixbutton";
-      fixbutton.innerHTML = "<div class='fixbutton-text'>\n	<img width=22 src='/uimedia/img/logo-white.png'/>\n</div>\n<div class='fixbutton-burger'>&#x2261;</div>\n<a class='fixbutton-bg' href=\"{homepage}/\"></a>";
+      fixbutton.innerHTML = "<div class='fixbutton-text'>\n	<img width=22 src='/uimedia/img/logo-white.png'/>\n</div>\n<div class='fixbutton-burger'>&#x2261;</div>\n<span class='fixbutton-bg'></span>";
       dom.appendChild(fixbutton);
       fixbutton_bg = fixbutton.querySelector(".fixbutton-bg");
       fixbutton_burger = fixbutton.querySelector(".fixbutton-burger");

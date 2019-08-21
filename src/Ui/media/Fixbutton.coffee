@@ -7,7 +7,7 @@ class Fixbutton
 				<img width=22 src='/uimedia/img/logo-white.png'/>
 			</div>
 			<div class='fixbutton-burger'>&#x2261;</div>
-			<a class='fixbutton-bg' href="{homepage}/"></a>
+			<span class='fixbutton-bg'></span>
 		"""
 		dom.appendChild fixbutton
 
