@@ -4,12 +4,12 @@ class Console extends Class
 		@opened = false
 		@filter = null
 		#@filter = @sidebar.wrapper.site_info.address_short
-		handleMessageWebsocket_original = @sidebar.wrapper.handleMessageWebsocket
-		@sidebar.wrapper.handleMessageWebsocket = (message) =>
-			if message.cmd == "logLineAdd" and message.params.stream_id == @stream_id
-				@addLines(message.params.lines)
-			else
-				handleMessageWebsocket_original(message)
+		#handleMessageWebsocket_original = @sidebar.wrapper.handleMessageWebsocket
+		#@sidebar.wrapper.handleMessageWebsocket = (message) =>
+		#	if message.cmd == "logLineAdd" and message.params.stream_id == @stream_id
+		#		@addLines(message.params.lines)
+		#	else
+		#		handleMessageWebsocket_original(message)
 
 		if window.top.location.hash == "#console"
 			setTimeout (=> @open()), 10

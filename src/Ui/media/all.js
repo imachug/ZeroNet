@@ -369,7 +369,6 @@ $.extend( $.easing,
 
 }).call(this);
 
-
 /* ---- Infopanel.coffee ---- */
 
 
@@ -776,6 +775,7 @@ $.extend( $.easing,
       this.displayConfirm = bind(this.displayConfirm, this);
       this.handleMessage = bind(this.handleMessage, this);
       this.watch = bind(this.watch, this);
+      var Plugin, j, len, ref;
       this.siteAddress = location.pathname.replace("/", "").split("/")[0];
       this.postMessage = window.postMessage.bind(window);
       this.open = window.open.bind(window);
@@ -803,6 +803,11 @@ $.extend( $.easing,
       })(this));
       this.notifications = new Notifications(this.dom);
       this.fixbutton = new Fixbutton(this.dom);
+      ref = Prefix.plugins;
+      for (j = 0, len = ref.length; j < len; j++) {
+        Plugin = ref[j];
+        new Plugin(this);
+      }
       this.ws = new ZeroWebsocket(wrapper_key);
       this.ws.route = this.postMessage;
       window.parent = {
@@ -1075,9 +1080,12 @@ $.extend( $.easing,
 
   })();
 
+  Prefix.plugins = [];
+
   window.Prefix = Prefix;
 
 }).call(this);
+
 
 /* ---- ZeroSiteTheme.coffee ---- */
 

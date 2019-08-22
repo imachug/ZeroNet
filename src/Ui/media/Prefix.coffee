@@ -20,6 +20,8 @@ class Prefix
 			@dom.appendChild(node)
 		@notifications = new Notifications(@dom)
 		@fixbutton = new Fixbutton(@dom)
+		for Plugin in Prefix.plugins
+			new Plugin(@)
 		# Setup ZeroFrame command receiver
 		@ws = new ZeroWebsocket(wrapper_key)
 		@ws.route = @postMessage
@@ -268,5 +270,6 @@ class Prefix
 		input.focus()
 
 
+Prefix.plugins = []
 
 window.Prefix = Prefix
