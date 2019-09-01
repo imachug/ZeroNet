@@ -398,7 +398,7 @@ class UiWebsocket(object):
         return back
 
     # Sign content.json
-    def actionSiteSign(self, to, privatekey=None, inner_path="content.json", remove_missing_optional=False, update_changed_files=False, response_ok=True):
+    def actionSiteSign(self, to, privatekey=None, inner_path="content.json", remove_missing_optional=False, update_changed_files=False, response_ok=True, scripted=False):
         self.log.debug("Signing: %s" % inner_path)
         site = self.site
         extend = {}  # Extended info for signing
@@ -412,16 +412,25 @@ class UiWebsocket(object):
 
         # Add certificate to user files
         is_user_content = file_info and ("cert_signers" in file_info or "cert_signers_pattern" in file_info)
-        if is_user_content and privatekey is None:
-            cert = self.user.getCert(self.site.address)
-            extend["cert_auth_type"] = cert["auth_type"]
-            extend["cert_user_id"] = self.user.getCertUserId(site.address)
-            extend["cert_sign"] = cert["cert_sign"]
-            self.log.debug("Extending content.json with cert %s" % extend["cert_user_id"])
+        if is_user_content:
+            if privatekey is None:
+                cert = self.user.getCert(self.site.address)
+                extend["cert_auth_type"] = cert["auth_type"]
+                extend["cert_user_id"] = self.user.getCertUserId(site.address)
+                extend["cert_sign"] = cert["cert_sign"]
+                self.log.debug("Extending content.json with cert %s" % extend["cert_user_id"])
+            elif scripted and privatekey is not None:
+                extend["cert_auth_type"] = privatekey["auth_type"]
+                extend["cert_user_id"] = privatekey["user_id"]
+                extend["cert_sign"] = privatekey["sign"]
+                self.log.debug("Extending content.json with scripted cert %s" % extend["cert_user_id"])
 
         if not self.hasFilePermission(inner_path):
             self.log.error("SiteSign error: you don't own this site & site owner doesn't allow you to do so.")
             return self.response(to, {"error": "Forbidden, you can only modify your own sites"})
+
+        if scripted and privatekey is not None:
+            privatekey = privatekey["privatekey"]
 
         if privatekey == "stored":  # Get privatekey from sites.json
             privatekey = self.user.getSiteData(self.site.address).get("privatekey")
