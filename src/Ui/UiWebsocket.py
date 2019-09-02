@@ -714,6 +714,9 @@ class UiWebsocket(object):
             return self.response(to, {"error": Debug.formatExceptionMessage(err)})
         return self.response(to, "ok")
 
+    def actionFileValidSigners(self, to, inner_path):
+        self.response(to, self.site.content_manager.getValidSigners(inner_path))
+
     def actionFileRules(self, to, inner_path, use_my_cert=False, content=None):
         if not content:  # No content defined by function call
             content = self.site.content_manager.contents.get(inner_path)
