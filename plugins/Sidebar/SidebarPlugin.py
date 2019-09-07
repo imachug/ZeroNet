@@ -48,6 +48,14 @@ class UiRequestPlugin(object):
             else:
                 for part in self.actionFile(plugin_media_file, send_header=False):
                     yield part
+        elif path.startswith("/uimedia/sidebar_content/"):  # Serve sidebar content wrapper
+            file_name = re.match(".*/(.*)", path).group(1)
+            plugin_media_file = "%s_content/%s" % (media_dir, file_name)
+            if (config.debug or config.merge_media) and file_name in ("all.js", "all.css"):
+                from Debug import DebugMedia
+                DebugMedia.merge(plugin_media_file)
+            for part in self.actionFile(plugin_media_file):
+                yield part
         elif path.startswith("/uimedia/globe/"):  # Serve WebGL globe files
             file_name = re.match(".*/(.*)", path).group(1)
             plugin_media_file = "%s_globe/%s" % (media_dir, file_name)
@@ -81,6 +89,26 @@ class UiRequestPlugin(object):
             if not data:
                 break
             yield data
+
+    def actionSidebar(self):
+        # Find site by wrapper_key
+        wrapper_key = self.get["wrapper_key"]
+        site = None
+        for site_check in list(self.server.sites.values()):
+            keys = (site_check.settings["wrapper_key"], site_check.settings["admin_wrapper_key"])
+            if wrapper_key in keys:
+                site = site_check
+                break
+        if not site:
+            return self.error403("Wrapper key not found: %s" % wrapper_key)
+
+        self.sendHeader(extra_headers={
+            "Content-Security-Policy": "sandbox allow-scripts"
+        })
+        return iter([self.render(
+            "plugins/Sidebar/template/sidebar.html",
+            wrapper_key=site.settings["admin_wrapper_key"]
+        )])
 
 
 @PluginManager.registerTo("UiWebsocket")
@@ -485,7 +513,7 @@ class UiWebsocketPlugin(object):
     def sidebarRenderContents(self, body, site):
         has_privatekey = bool(self.user.getSiteData(site.address, create=False).get("privatekey"))
         if has_privatekey:
-            tag_privatekey = _("{_[Private key saved.]} <a href='#Forgot+private+key' id='privatekey-forgot' class='link-right'>{_[Forgot]}</a>")
+            tag_privatekey = _("{_[Private key saved.]} <a href='#Forget+private+key' id='privatekey-forget' class='link-right'>{_[Forget]}</a>")
         else:
             tag_privatekey = _("<a href='#Add+private+key' id='privatekey-add' class='link-right'>{_[Add saved private key]}</a>")
 
@@ -520,7 +548,7 @@ class UiWebsocketPlugin(object):
 
         body = []
 
-        body.append("<div>")
+        body.append("<div class='content'>")
         body.append("<a href='#Close' class='close'>&times;</a>")
         body.append("<h1>%s</h1>" % html.escape(site.content_manager.contents.get("content.json", {}).get("title", ""), True))
 

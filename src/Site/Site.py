@@ -1087,8 +1087,8 @@ class Site(object):
         self.updateWebsocket(file_failed=inner_path)
 
         if self.bad_files.get(inner_path, 0) > 30:
-            self.fileForgot(inner_path)
+            self.fileForget(inner_path)
 
-    def fileForgot(self, inner_path):
+    def fileForget(self, inner_path):
         self.log.debug("Giving up on %s" % inner_path)
         del self.bad_files[inner_path]  # Give up after 30 tries

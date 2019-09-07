@@ -1,5 +1,6 @@
 class Prefix
 	constructor: (wrapper_key) ->
+		@wrapper_key = wrapper_key
 		@siteAddress = location.pathname.replace("/", "").split("/")[0]
 		@postMessage = window.postMessage.bind(window)
 		@open = window.open.bind(window)

@@ -207,12 +207,12 @@ class SitePlugin(object):
 
         return False
 
-    def fileForgot(self, inner_path):
+    def fileForget(self, inner_path):
         if "|" in inner_path and self.content_manager.isPinned(re.sub(r"\|.*", "", inner_path)):
-            self.log.debug("File %s is pinned, no fileForgot" % inner_path)
+            self.log.debug("File %s is pinned, no fileForget" % inner_path)
             return False
         else:
-            return super(SitePlugin, self).fileForgot(inner_path)
+            return super(SitePlugin, self).fileForget(inner_path)
 
     def fileDone(self, inner_path):
         if "|" in inner_path and self.bad_files.get(inner_path, 0) > 5:  # Idle optional file done

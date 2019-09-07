@@ -51,7 +51,7 @@ class Sidebar extends Class
 	initTag: ->
 		@tag = $("""
 			<div class="sidebar">
-				<iframe src="/Talk.ZeroNetwork.bit"></iframe>
+				<iframe src="/ZeroNet-Internal/Sidebar?wrapper_key=#{@prefix.wrapper_key}"></iframe>
 			</div>
 		""")
 		$(@prefix.dom).append @tag
