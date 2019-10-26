@@ -1410,9 +1410,11 @@ $.extend( $.easing,
     Wrapper.prototype.displayPrompt = function(message, type, caption, placeholder, cb) {
       var body, button, input;
       body = $("<span class='message'></span>").html(message);
-      if (placeholder == null) {
+            if (placeholder != null) {
+        placeholder;
+      } else {
         placeholder = "";
-      }
+      };
       input = $("<input/>", {
         type: type,
         "class": "input button-" + type,
@@ -1964,7 +1966,7 @@ $.extend( $.easing,
 
   })();
 
-  origin = window.server_url || window.location.href.replace(/(\:\/\/.*?)\/.*/, "$1");
+  origin = window.location.href.replace(/(\:\/\/.*?)\/.*/, "$1");
 
   if (origin.indexOf("https:") === 0) {
     proto = {

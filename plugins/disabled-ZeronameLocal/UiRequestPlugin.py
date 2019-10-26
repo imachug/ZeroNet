@@ -25,11 +25,7 @@ class UiRequestPlugin(object):
         referer_path = re.sub("http[s]{0,1}://.*?/", "/", referer).replace("/media", "") # Remove site address
         referer_path = re.sub(r"\?.*", "", referer_path) # Remove http params
 
-        if self.isProxyRequest(): # Match to site domain
-            referer = re.sub("^http://zero[/]+", "http://", referer) # Allow /zero access
-            referer_site_address = re.match("http[s]{0,1}://(.*?)(/|$)", referer).group(1)
-        else: # Match to request path
-            referer_site_address = re.match(r"/(?P<address>[A-Za-z0-9\.-]+)(?P<inner_path>/.*|$)", referer_path).group("address")
+        referer_site_address = re.match("https?://(.*?)(/|$)", referer).group(1)
 
         if referer_site_address == site_address: # Referer site address as simple address
             return True

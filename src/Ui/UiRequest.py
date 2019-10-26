@@ -83,13 +83,7 @@ class UiRequest(object):
             self.learnHost(host)
             return True
 
-        if self.isProxyRequest():  # Support for chrome extension proxy
-            if self.isDomain(host):
-                return True
-            else:
-                return False
-
-        return False
+        return host.split(":")[0].endswith(".zeronet")
 
     def isDomain(self, address):
         return self.server.site_manager.isDomainCached(address)
@@ -111,16 +105,20 @@ class UiRequest(object):
             if self.env["QUERY_STRING"]:
                 http_get += "?{0}".format(self.env["QUERY_STRING"])
             self_host = self.env["HTTP_HOST"].split(":")[0]
-            self_ip = self.env["HTTP_HOST"].replace(self_host, socket.gethostbyname(self_host))
-            link = "http://{0}{1}".format(self_ip, http_get)
-            ret_link = """<h4>Access via ip: <a href="{0}">{0}</a>""".format(html.escape(link)).encode("utf8")
+            try:
+                self_ip = self.env["HTTP_HOST"].replace(self_host, socket.gethostbyname(self_host))
+                link = "http://{0}{1}".format(self_ip, http_get)
+                ret_link = """<h4>Access via ip: <a href="{0}">{0}</a>""".format(html.escape(link)).encode("utf8")
+            except Exception:
+                ret_link = ""
             return iter([ret_error, ret_link])
 
-        # Prepend .bit host for transparent proxy
-        if self.isDomain(self.env.get("HTTP_HOST")):
-            path = re.sub("^/", "/" + self.env.get("HTTP_HOST") + "/", path)
-        path = re.sub("^http://zero[/]+", "/", path)  # Remove begining http://zero/ for chrome extension
-        path = re.sub("^http://", "/", path)  # Remove begining http for chrome extension .bit access
+        # Transform to classic /address/path format
+        if path.startswith("http://"):
+            path = path.replace("http://", "/", 1)
+        elif not path.startswith("/"):
+            path = "/" + path
+        path = re.sub("^/([^/]*)\\.zeronet(?:\\:d+)?/", "/\\1/", path)  # Remove port and .zeronet
 
         # Sanitize request url
         path = path.replace("\\", "/")
@@ -194,7 +192,12 @@ class UiRequest(object):
 
     # The request is proxied by chrome extension or a transparent proxy
     def isProxyRequest(self):
-        return self.env["PATH_INFO"].startswith("http://") or (self.server.allow_trans_proxy and self.isDomain(self.env.get("HTTP_HOST")))
+        if self.env["PATH_INFO"].startswith("http://"):
+            return True
+        if not self.server.allow_trans_proxy:
+            return False
+        host = self.env.get("HTTP_HOST")
+        return self.isDomain(host) or self.isDomain(re.sub("\\.zeronet$", "", host))
 
     def isWebSocketRequest(self):
         return self.env.get("HTTP_UPGRADE") == "websocket"
@@ -245,22 +248,6 @@ class UiRequest(object):
             self.user = UserManager.user_manager.create()
         return self.user
 
-    def getRequestUrl(self):
-        if self.isProxyRequest():
-            if self.env["PATH_INFO"].startswith("http://zero/"):
-                return self.env["PATH_INFO"]
-            else:  # Add http://zero to direct domain access
-                return self.env["PATH_INFO"].replace("http://", "http://zero/", 1)
-        else:
-            return self.env["wsgi.url_scheme"] + "://" + self.env["HTTP_HOST"] + self.env["PATH_INFO"]
-
-    def getReferer(self):
-        referer = self.env.get("HTTP_REFERER")
-        if referer and self.isProxyRequest() and not referer.startswith("http://zero/"):
-            return referer.replace("http://", "http://zero/", 1)
-        else:
-            return referer
-
     def isScriptNonceSupported(self):
         user_agent = self.env.get("HTTP_USER_AGENT")
         if "Edge/" in user_agent:
@@ -278,7 +265,7 @@ class UiRequest(object):
         headers["Connection"] = "Keep-Alive"
         headers["Keep-Alive"] = "max=25, timeout=30"
         headers["X-Frame-Options"] = "SAMEORIGIN"
-        if content_type != "text/html" and self.env.get("HTTP_REFERER") and self.isSameOrigin(self.getReferer(), self.getRequestUrl()):
+        if content_type != "text/html" and self.env.get("HTTP_REFERER") and self.isSameOrigin(self.env.get("HTTP_REFERER"), self.env["PATH_INFO"]):
             headers["Access-Control-Allow-Origin"] = "*"  # Allow load font files from css
 
         if noscript:
@@ -403,22 +390,6 @@ class UiRequest(object):
         else:  # Bad url
             return False
 
-    def getSiteUrl(self, address):
-        if self.isProxyRequest():
-            return "http://zero/" + address
-        else:
-            return "/" + address
-
-    def getWsServerUrl(self):
-        if self.isProxyRequest():
-            if self.env["REMOTE_ADDR"] == "127.0.0.1":  # Local client, the server address also should be 127.0.0.1
-                server_url = "http://127.0.0.1:%s" % self.env["SERVER_PORT"]
-            else:  # Remote client, use SERVER_NAME as server's real address
-                server_url = "http://%s:%s" % (self.env["SERVER_NAME"], self.env["SERVER_PORT"])
-        else:
-            server_url = ""
-        return server_url
-
     def processQueryString(self, site, query_string):
         match = re.search("zeronet_peers=(.*?)(&|$)", query_string)
         if match:
@@ -443,20 +414,8 @@ class UiRequest(object):
             file_inner_path = file_inner_path + "index.html"
 
         address = re.sub("/.*", "", path.lstrip("/"))
-        if self.isProxyRequest() and (not path or "/" in path[1:]):
-            if self.env["HTTP_HOST"] == "zero":
-                root_url = "/" + address + "/"
-                file_url = "/" + address + "/" + inner_path
-            else:
-                file_url = "/" + inner_path
-                root_url = "/"
-
-        else:
-            file_url = "/" + address + "/" + inner_path
-            root_url = "/" + address + "/"
-
-        if self.isProxyRequest():
-            self.server.allowed_ws_origins.add(self.env["HTTP_HOST"])
+        file_url = "/" + inner_path
+        root_url = "/"
 
         # Wrapper variable inits
         body_style = ""
@@ -473,12 +432,7 @@ class UiRequest(object):
         else:
             inner_query_string = "?wrapper_nonce=%s" % wrapper_nonce
 
-        if self.isProxyRequest():  # Its a remote proxy request
-            homepage = "http://zero/" + config.homepage
-        else:  # Use relative path
-            homepage = "/" + config.homepage
-
-        server_url = self.getWsServerUrl()  # Real server url for WS connections
+        homepage = "http://" + config.homepage + ".zeronet"
 
         user = self.getCurrentUser()
         if user:
@@ -510,7 +464,6 @@ class UiRequest(object):
 
         return self.render(
             "src/Ui/template/wrapper.html",
-            server_url=server_url,
             inner_path=inner_path,
             file_url=re.escape(file_url),
             file_inner_path=re.escape(file_inner_path),
@@ -554,18 +507,8 @@ class UiRequest(object):
     def isSameOrigin(self, url_a, url_b):
         if not url_a or not url_b:
             return False
-
-        url_a = url_a.replace("/raw/", "/")
-        url_b = url_b.replace("/raw/", "/")
-
-        origin_pattern = "http[s]{0,1}://(.*?/.*?/).*"
-        is_origin_full = re.match(origin_pattern, url_a)
-        if not is_origin_full:  # Origin looks trimmed to host, require only same host
-            origin_pattern = "http[s]{0,1}://(.*?/).*"
-
-        origin_a = re.sub(origin_pattern, "\\1", url_a)
-        origin_b = re.sub(origin_pattern, "\\1", url_b)
-
+        origin_a = re.sub("http[s]{0,1}://([^/]+)$", "\\1", url_a)
+        origin_b = re.sub("http[s]{0,1}://([^/]+)$", "\\1", url_b)
         return origin_a == origin_b
 
     # Return {address: 1Site.., inner_path: /data/users.json} from url path
@@ -771,16 +714,6 @@ class UiRequest(object):
         ws = self.env.get("wsgi.websocket")
 
         if ws:
-            # Allow only same-origin websocket requests
-            origin = self.env.get("HTTP_ORIGIN")
-            host = self.env.get("HTTP_HOST")
-            # Allow only same-origin websocket requests
-            if origin:
-                origin_host = origin.split("://", 1)[-1]
-                if origin_host != host and origin_host not in self.server.allowed_ws_origins:
-                    ws.send(json.dumps({"error": "Invalid origin: %s" % origin}))
-                    return self.error403("Invalid origin: %s" % origin)
-
             # Find site by wrapper_key
             wrapper_key = self.get["wrapper_key"]
             site = None
