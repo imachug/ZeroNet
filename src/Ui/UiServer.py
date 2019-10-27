@@ -58,6 +58,7 @@ class UiWSGIHandler(WSGIHandler):
                 self.handleError(err)
         else:  # Standard HTTP request
             try:
+                self.environ["wsgi.socket"] = self.socket
                 super(UiWSGIHandler, self).run_application()
             except (ConnectionAbortedError, ConnectionResetError) as err:
                 logging.warning("UiWSGIHandler connection error: %s" % err)
@@ -115,6 +116,41 @@ class UiServer:
 
     # Handle WSGI request
     def handleRequest(self, env, start_response):
+        if env["REQUEST_METHOD"] == "CONNECT":
+            # Acting as HTTP proxy, most likely serving websocket
+            if not env["PATH_INFO"].split(":")[0].endswith(".zeronet"):
+                # Something unrelated to ZeroNet, most likely a misconfiguration issue
+                start_response("400 Bad Request", [])(b"")
+                return []
+
+            # Open socket to myself
+            sock = socket.socket()
+            sock.connect(("127.0.0.1", config.ui_port))
+            start_response("200 OK", [])(b"")
+
+            # Handle input
+            def pipeInput():
+                try:
+                    while True:
+                        data = env["wsgi.socket"].recv(1024)
+                        if data == b"":
+                            break
+                        sock.send(data)
+                finally:
+                    sock.close()
+            gevent.spawn(pipeInput)
+
+            # Pipe output
+            try:
+                while True:
+                    data = sock.recv(1024)
+                    if data == b"":
+                        break
+                    env["wsgi.socket"].send(data)
+            finally:
+                env["wsgi.socket"].close()
+            return
+
         path = bytes(env["PATH_INFO"], "raw-unicode-escape").decode("utf8")
         if env.get("QUERY_STRING"):
             get = dict(urllib.parse.parse_qsl(env['QUERY_STRING']))
