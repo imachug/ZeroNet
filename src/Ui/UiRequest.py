@@ -324,7 +324,7 @@ class UiRequest(object):
         yield b"Location changed: " + url.encode("utf8")
 
     def actionIndex(self):
-        return self.actionRedirect("/" + config.homepage)
+        return self.actionRedirect("http://%s.zeronet/" % (config.homepage,))
 
     # Render a file from media with iframe site wrapper
     def actionWrapper(self, path, extra_headers=None):
