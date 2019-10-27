@@ -136,6 +136,8 @@ class UiServer:
                         if data == b"":
                             break
                         sock.send(data)
+                except OSError:
+                    pass
                 finally:
                     sock.close()
             gevent.spawn(pipeInput)
@@ -147,9 +149,11 @@ class UiServer:
                     if data == b"":
                         break
                     env["wsgi.socket"].send(data)
+            except OSError:
+                pass
             finally:
                 env["wsgi.socket"].close()
-            return
+            return []
 
         path = bytes(env["PATH_INFO"], "raw-unicode-escape").decode("utf8")
         if env.get("QUERY_STRING"):
