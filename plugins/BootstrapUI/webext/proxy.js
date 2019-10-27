@@ -29,3 +29,16 @@ browser.webRequest.onBeforeRequest.addListener(req => {
 		}
 	}
 })();
+
+
+async function updateIcon(tabId) {
+	const tab = await new Promise(resolve => browser.tabs.get(tabId, resolve));
+	const isZeroNet = /^(.*?):\/\/[^\/]+\.zeronet/.test(tab.url);
+	browser.browserAction.setIcon({
+		tabId: tabId,
+		path: isZeroNet ? "logo.png" : "logo-inactive.png"
+	});
+}
+
+browser.tabs.onCreated.addListener(tab => updateIcon(tab.id));
+browser.tabs.onUpdated.addListener(updateIcon);
