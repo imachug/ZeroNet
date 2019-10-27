@@ -47,9 +47,7 @@ if config.action == "main":
                     browser = webbrowser.get()
                 else:
                     browser = webbrowser.get(config.open_browser)
-                browser.open("http://%s:%s/%s" % (
-                    config.ui_ip if config.ui_ip != "*" else "127.0.0.1", config.ui_port, config.homepage
-                ), new=2)
+                browser.open("http://%s:%s/zeronet-bootstrap" % (config.ui_ip if config.ui_ip != "*" else "127.0.0.1", config.ui_port), new=2)
             except Exception as err:
                 print("Error starting browser: %s" % err)
         sys.exit()
