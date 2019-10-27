@@ -1,0 +1,124 @@
+html {
+	height: 100%;
+}
+body {
+	height: 100%;
+	font-family: Roboto, 'Segoe UI', Arial, 'Helvetica Neue';
+	margin: 0px;
+	padding: 0px;
+}
+
+aside {
+	width: 400px;
+	height: 100%;
+	overflow: hidden;
+	float: left;
+	background-color: #232a31;
+}
+aside img {
+	filter: blur(8px);
+}
+
+main {
+	width: calc(100% - 400px);
+	height: 100%;
+	float: left;
+	background-color: #ffffff;
+}
+
+header {
+	height: 94px;
+	overflow: hidden;
+	background-color: #edf2f5;
+}
+header img {
+	float: right;
+	filter: blur(8px);
+}
+
+aside, main {
+	filter: brightness(60%);
+}
+
+
+
+section {
+	position: fixed;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+
+	width: 100%;
+	max-width: 600px;
+	padding: 16px;
+	background-color: #ffffff;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	border-radius: 4px;
+
+	display: flex;
+	flex: 1 1 0;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
+
+section h2 {
+	margin: 8px 0;
+	padding: 10px;
+	background-color: #af3bff;
+	color: #ffffff;
+	background: linear-gradient(45deg, #8041F1, #B149F7);
+	font-weight: lighter;
+	font-size: 18px;
+	line-height: 24px;
+}
+
+section .browser {
+	margin-bottom: 48px;
+	text-align: center;
+}
+
+section .browser img {
+	height: 128px;
+}
+
+section a {
+	box-sizing: border-box;
+	padding: 5px 10px;
+	background-color: #FFF85F;
+	border-bottom: 2px solid #CDBD1E;
+	border-radius: 2px;
+	text-decoration: none;
+	transition: all 0.5s;
+	background-position: left center;
+	cursor: pointer;
+	font-family: "Segoe UI Light", "Segoe UI", "Helvetica Neue";
+	font-weight: 200;
+	font-size: 18px;
+	color: #000000;
+}
+section a:hover {
+	background-color: #fff400;
+	border-bottom: 2px solid #4D4D4C;
+}
+
+/* Other browsers */
+.other-browsers {
+	display: flex;
+	flex-direction: row;
+	width: 100%;
+	margin-bottom: 16px;
+}
+.other-browsers .browser {
+	flex: 1 1 0;
+	margin: 0;
+}
+.other-browsers .browser img {
+	height: 64px;
+}
+.other-browsers .browser h3 {
+	font-size: 14px;
+}
+.other-browsers .browser a {
+	font-size: 14px;
+}

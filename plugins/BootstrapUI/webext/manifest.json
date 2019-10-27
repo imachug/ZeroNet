@@ -1,0 +1,28 @@
+{
+	"manifest_version": 2,
+	"name": "ZeroNet",
+	"version": "0.7",
+	"description": "ZeroNet access",
+	"icons": {
+		"48": "logo.png",
+		"96": "logo.png"
+	},
+	"applications": {
+		"gecko": {
+			"id": "webext@zeronet.io"
+		}
+	},
+	"background": {
+		"scripts": [
+			"proxy.js"
+		]
+	},
+	"permissions": [
+		"proxy",
+		"webRequest",
+		"webRequestBlocking",
+		"tabs",
+		"*://*.zeronet/*",
+		"*://*/zeronet-bootstrap"
+	]
+}
