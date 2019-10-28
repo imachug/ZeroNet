@@ -1,0 +1,15 @@
+h2 {
+	margin: 0;
+	margin-bottom: 8px;
+	font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+	font-weight: normal;
+	font-size: 18px;
+}
+
+.buttons {
+	display: flex;
+	flex-direction: row;
+}
+button {
+	flex: 1 1 0;
+}

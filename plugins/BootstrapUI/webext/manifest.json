@@ -14,6 +14,7 @@
 	},
 	"background": {
 		"scripts": [
+			"settings.js",
 			"proxy.js"
 		]
 	},
@@ -22,6 +23,7 @@
 		"webRequest",
 		"webRequestBlocking",
 		"tabs",
+		"storage",
 		"*://*.zeronet/*",
 		"*://*/zeronet-bootstrap"
 	],
@@ -30,6 +32,7 @@
 			"48": "logo48.png",
 			"96": "logo96.png"
 		},
-		"default_title": "ZeroNet"
+		"default_title": "ZeroNet",
+		"default_popup": "popup.html"
 	}
 }

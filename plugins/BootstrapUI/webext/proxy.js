@@ -1,36 +1,46 @@
-// Set proxy
-if(globalThis.browser) {
-	// Firefox-compatible
-	browser.proxy.onRequest.addListener(req => {
-		return {
-			type: "http",
-			host: "127.0.0.1",
-			port: 43110
-		};
-	}, {
-		urls: ["*://*.zeronet/*"]
-	});
-} else {
-	// Chrome-like
-	chrome.proxy.settings.set({value: {
-		mode: "pac_script",
-		pacScript: {
-			data: `
-				function FindProxyForURL(url, host) {
-					if(host.endsWith(".zeronet")) {
-						return "PROXY 127.0.0.1:43110";
+function setProxy(hostname) {
+	let [host, port] = hostname.split(":");
+	if(port) {
+		port = parseInt(port);
+	} else {
+		port = 80;
+	}
+
+	if(globalThis.browser) {
+		// Firefox-compatible
+		browser.proxy.onRequest.addListener(req => {
+			return {
+				type: "http",
+				host,
+				port
+			};
+		}, {
+			urls: ["*://*.zeronet/*"]
+		});
+	} else {
+		// Chrome-like
+		chrome.proxy.settings.set({value: {
+			mode: "pac_script",
+			pacScript: {
+				data: `
+					function FindProxyForURL(url, host) {
+						if(host.endsWith(".zeronet")) {
+							return "PROXY ${host}:${port}";
+						}
+						return "DIRECT";
 					}
-					return "DIRECT";
-				}
-			`
-		}
-	}});
+				`
+			}
+		}});
+	}
 }
 
 
 
 const browserChrome = globalThis.browser || globalThis.chrome;
 
+
+// Set redirects
 browserChrome.webRequest.onBeforeRequest.addListener(req => {
 	return {
 		redirectUrl: "http://home.zeronet/ZeroNet-Internal/Index"
@@ -39,8 +49,19 @@ browserChrome.webRequest.onBeforeRequest.addListener(req => {
 	urls: ["*://*/zeronet-bootstrap"]
 }, ["blocking"]);
 
-// Redirect all currently opened zeronet-bootstrap pages
+
+browserChrome.storage.onChanged.addListener(async () => {
+	// Update browser proxy settings
+	setProxy(await getCurrentProxy());
+});
+
+
 (async () => {
+	// Set proxy on startup
+	setProxy(await getCurrentProxy());
+
+
+	// Redirect all currently opened zeronet-bootstrap pages
 	let tabs;
 	if(globalThis.browser) {
 		tabs = await browser.tabs.query({});
