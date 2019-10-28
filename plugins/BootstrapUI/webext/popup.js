@@ -10,6 +10,11 @@ document.querySelector("#cancel").addEventListener("click", async () => {
 	gatewayNode.value = await getCurrentProxy();
 });
 
+
 (async () => {
 	gatewayNode.value = await getCurrentProxy();
 })();
+
+(globalThis.browser || globalThis.chrome).storage.onChanged.addListener(async () => {
+	gatewayNode.value = await getCurrentProxy();
+});
