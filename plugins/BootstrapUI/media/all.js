@@ -26,8 +26,8 @@
     },
     tor: {
       title: "Tor Browser",
-      linkText: "Install",
-      link: "#"
+      linkText: "Go to zeronet.io",
+      link: "https://zeronet.io/plugin"
     }
   };
 
