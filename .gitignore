@@ -7,7 +7,7 @@ __pycache__/
 
 # Hidden files
 .*
-!/.gitignore
+!.gitignore
 !/.travis.yml
 !/.gitlab-ci.yml
 
