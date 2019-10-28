@@ -69,7 +69,15 @@ async function updateIcon(tabId) {
 	const isZeroNet = /^(.*?):\/\/[^\/]+\.zeronet/.test(tab.url);
 	browserChrome.browserAction.setIcon({
 		tabId: tabId,
-		path: isZeroNet ? "logo.png" : "logo-inactive.png"
+		path: isZeroNet ? {
+			32: "logo32.png",
+			48: "logo48.png",
+			96: "logo96.png"
+		} : {
+			32: "logo-inactive32.png",
+			48: "logo-inactive48.png",
+			96: "logo-inactive96.png"
+		}
 	});
 }
 
