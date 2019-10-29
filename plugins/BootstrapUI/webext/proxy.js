@@ -39,7 +39,44 @@ function setupProxy(hostname) {
 }
 
 
-async function redirectTabs() {
+async function handleBootstrapRequest(tabId, url) {
+	const hostname = url.match(/(?:.*?):\/\/(.*?)(\/|$)/)[1];
+	if(!hostname || hostname === currentProxy) {
+		return;
+	}
+
+	if(pendingGatewayUpdate === hostname) {
+		// Being asked already
+		return;
+	}
+	pendingGatewayUpdate = hostname;
+
+	// Ask the user whether they want to change gateway
+	const code = `
+		confirm(
+			"This site wants to change ZeroNet gateway to " +
+			${JSON.stringify(hostname)} + ". Allow?"
+		)
+	`;
+	let result;
+	if(globalThis.browser) {
+		result = (await browser.tabs.executeScript(tabId, {code}))[0];
+	} else {
+		result = (await new Promise(resolve => chrome.tabs.executeScript(tabId, {code}, resolve)))[0];
+	}
+	if(result) {
+		// Change gateway and redirect this tab
+		await setProxy(hostname);
+		redirectTabs(true);
+	}
+	setTimeout(() => {
+		pendingGatewayUpdate = null;
+	}, 100);
+	return !!result;
+}
+
+
+async function redirectTabs(force) {
 	// Redirect all currently opened bootstrap pages
 	let tabs;
 	if(globalThis.browser) {
@@ -49,6 +86,13 @@ async function redirectTabs() {
 	}
 	for(const tab of tabs) {
 		if(tab.url.endsWith("/ZeroNet-Internal/Bootstrap")) {
+			if(!force) {
+				// Makes sense at the moment of installation
+				if(await handleBootstrapRequest(tab.id, tab.url)) {
+					// Doesn't make sense to redirect anymore
+					return;
+				}
+			}
 			if(globalThis.browser) {
 				browser.tabs.update(tab.id, {
 					url: "http://home.zeronet/ZeroNet-Internal/Index",
@@ -89,39 +133,7 @@ browserChrome.tabs.onUpdated.addListener(async tabId => {
 	if(!tab.url.endsWith("/ZeroNet-Internal/Bootstrap")) {
 		return;
 	}
-	// Get hostname
-	const hostname = tab.url.match(/(?:.*?):\/\/(.*?)(\/|$)/)[1];
-	if(!hostname || hostname === currentProxy) {
-		return;
-	}
-
-	if(pendingGatewayUpdate === hostname) {
-		// Being asked already
-		return;
-	}
-
-	pendingGatewayUpdate = hostname;
-	// Ask the user whether they want to change gateway
-	const code = `
-		confirm(
-			"This site wants to change ZeroNet gateway to " +
-			${JSON.stringify(hostname)} + ". Allow?"
-		)
-	`;
-	let result;
-	if(globalThis.browser) {
-		result = (await browser.tabs.executeScript(tabId, {code}))[0];
-	} else {
-		result = (await new Promise(resolve => chrome.tabs.executeScript(tabId, {code}, resolve)))[0];
-	}
-	if(result) {
-		// Change gateway and redirect this tab
-		await setProxy(hostname);
-		redirectTabs();
-	}
-	setTimeout(() => {
-		pendingGatewayUpdate = null;
-	}, 100);
+	await handleBootstrapRequest(tabId, tab.url);
 });
 
 
@@ -137,7 +149,7 @@ browserChrome.storage.onChanged.addListener(async () => {
 	currentProxy = await getCurrentProxy();
 	setupProxy(currentProxy);
 
-	redirectTabs();
+	redirectTabs(false);
 })();
 
 
