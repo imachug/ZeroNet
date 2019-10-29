@@ -14,27 +14,27 @@ actions. This plugin helps to make them easier.
 ## How?
 
 By default, ZeroNet maps UI to TCP port 43110, with bootstrap UI hosted on URL
-`/zeronet-bootstrap`. `http://127.0.0.1:43110/zeronet-bootstrap` is opened in
-browser when ZeroNet starts. That page then checks what browser is used and
-helps to install extension.
+`/ZeroNet-Internal/Bootstrap`. http://127.0.0.1:43110/ZeroNet-Internal/Bootstrap
+is opened in browser when ZeroNet starts. That page then checks what browser is
+used and helps to install extension.
 
 
 ## Usecases
 
 ### Local ZeroNet
 
-ZeroNet will open `http://127.0.0.1:43110/zeronet-bootstrap` in the default
-browser. Follow the instructions. If the browser wasn't opened for some reason
-or you want to set up another browser, you can navigate
-`http://127.0.0.1:43110/zeronet-bootstrap` manually.
+ZeroNet will open http://127.0.0.1:43110/ZeroNet-Internal/Bootstrap in the
+default browser. Follow the instructions. If the browser wasn't opened for some
+reason or you want to set up another browser, you can navigate
+http://127.0.0.1:43110/ZeroNet-Internal/Bootstrap manually.
 
 
 ## ZeroNet in LAN
 
 If you want to access your ZeroNet instance from a different computer in LAN,
-you'll have to access `http://192.168.0.7:43110/zeronet-bootstrap` (or another
-IP or port) and configure the extension to access `192.168.0.7:43110` instead of
-`127.0.0.1:43110`.
+you'll have to access http://192.168.0.7:43110/ZeroNet-Internal/Bootstrap (or
+another IP or port) and configure the extension to access `192.168.0.7:43110`
+instead of `127.0.0.1:43110`.
 
 
 ## ZeroNet proxies

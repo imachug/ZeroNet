@@ -25,7 +25,7 @@
 		"tabs",
 		"storage",
 		"*://*.zeronet/*",
-		"*://*/zeronet-bootstrap"
+		"*://*/ZeroNet-Internal/Bootstrap"
 	],
 	"browser_action": {
 		"default_icon": {

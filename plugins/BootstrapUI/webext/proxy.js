@@ -40,7 +40,7 @@ function setupProxy(hostname) {
 
 
 async function redirectTabs() {
-	// Redirect all currently opened zeronet-bootstrap pages
+	// Redirect all currently opened bootstrap pages
 	let tabs;
 	if(globalThis.browser) {
 		tabs = await browser.tabs.query({});
@@ -48,7 +48,7 @@ async function redirectTabs() {
 		tabs = await new Promise(resolve => chrome.tabs.query({}, resolve));
 	}
 	for(const tab of tabs) {
-		if(tab.url.endsWith("/zeronet-bootstrap")) {
+		if(tab.url.endsWith("/ZeroNet-Internal/Bootstrap")) {
 			if(globalThis.browser) {
 				browser.tabs.update(tab.id, {
 					url: "http://home.zeronet/ZeroNet-Internal/Index",
@@ -69,7 +69,7 @@ const browserChrome = globalThis.browser || globalThis.chrome;
 
 // Set redirects
 browserChrome.webRequest.onBeforeRequest.addListener(req => {
-	if(req.url.endsWith("/zeronet-bootstrap")) {
+	if(req.url.endsWith("/ZeroNet-Internal/Bootstrap")) {
 		// Get hostname
 		const hostname = req.url.match(/(?:.*?):\/\/(.*?)(\/|$)/)[1];
 		if(!hostname || hostname === currentProxy) {
@@ -79,14 +79,14 @@ browserChrome.webRequest.onBeforeRequest.addListener(req => {
 		}
 	}
 }, {
-	urls: ["*://*/zeronet-bootstrap"]
+	urls: ["*://*/ZeroNet-Internal/Bootstrap"]
 }, ["blocking"]);
 
 
 let pendingGatewayUpdate = null;
 browserChrome.tabs.onUpdated.addListener(async tabId => {
 	const tab = await new Promise(resolve => browserChrome.tabs.get(tabId, resolve));
-	if(!tab.url.endsWith("/zeronet-bootstrap")) {
+	if(!tab.url.endsWith("/ZeroNet-Internal/Bootstrap")) {
 		return;
 	}
 	// Get hostname

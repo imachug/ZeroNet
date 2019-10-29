@@ -15,9 +15,7 @@ if "_" not in locals():
 
 @PluginManager.registerTo("UiRequest")
 class UiRequestPlugin(object):
-    def actionWrapper(self, path, extra_headers=None):
-        if path.strip("/") != "zeronet-bootstrap":
-            return super(UiRequestPlugin, self).actionWrapper(path, extra_headers)
+    def actionBootstrap(self):
         return self.actionUiMedia("/uimedia/plugins/bootstrapui/index.html")
 
     def actionUiMedia(self, path, *args, **kwargs):

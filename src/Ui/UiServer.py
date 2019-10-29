@@ -213,7 +213,7 @@ class UiServer:
                     browser = webbrowser.get()
                 else:
                     browser = webbrowser.get(config.open_browser)
-                url = "http://%s:%s/zeronet-bootstrap" % (config.ui_ip if config.ui_ip != "*" else "127.0.0.1", config.ui_port)
+                url = "http://%s:%s/ZeroNet-Internal/Bootstrap" % (config.ui_ip if config.ui_ip != "*" else "127.0.0.1", config.ui_port)
                 gevent.spawn_later(0.3, browser.open, url, new=2)
             except Exception as err:
                 print("Error starting browser: %s" % err)
