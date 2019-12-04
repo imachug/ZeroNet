@@ -13,6 +13,7 @@ from Config import config
 from util import RateLimit
 from util import Msgpack
 from util import helper
+from util.LowerCase import addressToLower
 from Plugin import PluginManager
 from contextlib import closing
 
@@ -101,7 +102,7 @@ class FileRequest(object):
 
     # Update a site file request
     def actionUpdate(self, params):
-        site = self.sites.get(params["site"])
+        site = self.sites.get(addressToLower(params["site"]))
         if not site or not site.isServing():  # Site unknown or not serving
             self.response({"error": "Unknown site"})
             self.connection.badAction(1)
@@ -125,7 +126,7 @@ class FileRequest(object):
             self.log.debug("Missing body from update, downloading...")
             peer = site.addPeer(self.connection.ip, self.connection.port, return_peer=True, source="update")  # Add or get peer
             try:
-                body = peer.getFile(site.address, inner_path).read()
+                body = peer.getFile(site, inner_path).read()
             except Exception as err:
                 self.log.debug("Can't download updated file %s: %s" % (inner_path, err))
                 self.response({"error": "File invalid update: Can't download updaed file"})
@@ -208,7 +209,7 @@ class FileRequest(object):
 
     # Send file content request
     def handleGetFile(self, params, streaming=False):
-        site = self.sites.get(params["site"])
+        site = self.sites.get(addressToLower(params["site"]))
         if not site or not site.isServing():  # Site unknown or not serving
             self.response({"error": "Unknown site"})
             self.connection.badAction(5)
@@ -289,7 +290,7 @@ class FileRequest(object):
 
     # Peer exchange request
     def actionPex(self, params):
-        site = self.sites.get(params["site"])
+        site = self.sites.get(addressToLower(params["site"]))
         if not site or not site.isServing():  # Site unknown or not serving
             self.response({"error": "Unknown site"})
             self.connection.badAction(5)
@@ -340,7 +341,7 @@ class FileRequest(object):
 
     # Get modified content.json files since
     def actionListModified(self, params):
-        site = self.sites.get(params["site"])
+        site = self.sites.get(addressToLower(params["site"]))
         if not site or not site.isServing():  # Site unknown or not serving
             self.response({"error": "Unknown site"})
             self.connection.badAction(5)
@@ -355,7 +356,7 @@ class FileRequest(object):
         self.response({"modified_files": modified_files})
 
     def actionGetHashfield(self, params):
-        site = self.sites.get(params["site"])
+        site = self.sites.get(addressToLower(params["site"]))
         if not site or not site.isServing():  # Site unknown or not serving
             self.response({"error": "Unknown site"})
             self.connection.badAction(5)
@@ -382,7 +383,7 @@ class FileRequest(object):
         return back
 
     def actionFindHashIds(self, params):
-        site = self.sites.get(params["site"])
+        site = self.sites.get(addressToLower(params["site"]))
         s = time.time()
         if not site or not site.isServing():  # Site unknown or not serving
             self.response({"error": "Unknown site"})
@@ -411,7 +412,7 @@ class FileRequest(object):
         self.response({"peers": back["ipv4"], "peers_onion": back["onion"], "peers_ipv6": back["ipv6"], "my": my_hashes})
 
     def actionSetHashfield(self, params):
-        site = self.sites.get(params["site"])
+        site = self.sites.get(addressToLower(params["site"]))
         if not site or not site.isServing():  # Site unknown or not serving
             self.response({"error": "Unknown site"})
             self.connection.badAction(5)

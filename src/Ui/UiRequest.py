@@ -16,6 +16,7 @@ from Plugin import PluginManager
 from Ui.UiWebsocket import UiWebsocket
 from Crypt import CryptHash
 from util import helper
+from util.LowerCase import addressToLower, addressToFull
 
 status_texts = {
     200: "200 OK",
@@ -582,6 +583,7 @@ class UiRequest(object):
             path_parts = match.groupdict()
             if self.isDomain(path_parts["address"]):
                 path_parts["address"] = self.resolveDomain(path_parts["address"])
+            path_parts["address"] = addressToLower(path_parts["address"])
             path_parts["request_address"] = path_parts["address"]  # Original request address (for Merger sites)
             path_parts["inner_path"] = path_parts["inner_path"].lstrip("/")
             if not path_parts["inner_path"]:
@@ -602,11 +604,11 @@ class UiRequest(object):
 
         address = path_parts["address"]
 
-        file_path = "%s/%s/%s" % (config.data_dir, address, path_parts["inner_path"])
+        file_path = "%s/%s/%s" % (config.data_dir, addressToLower(address), path_parts["inner_path"])
 
         if (config.debug or config.merge_media) and file_path.split("/")[-1].startswith("all."):
             # If debugging merge *.css to all.css and *.js to all.js
-            site = self.server.sites.get(address)
+            site = self.server.sites.get(addressToLower(address))
             if site and site.settings["own"]:
                 from Debug import DebugMedia
                 DebugMedia.merge(file_path)
@@ -697,7 +699,7 @@ class UiRequest(object):
         block = block.replace(b"{themeclass}", themeclass.encode("utf8"))
 
         if path_parts:
-            site = self.server.sites.get(path_parts.get("address"))
+            site = self.server.sites.get(addressToLower(path_parts.get("address")))
             if site.settings["own"]:
                 modified = int(time.time())
             else:

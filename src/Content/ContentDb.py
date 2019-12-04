@@ -4,6 +4,7 @@ from Db.Db import Db, DbTableError
 from Config import config
 from Plugin import PluginManager
 from Debug import Debug
+from util.LowerCase import addressToLower
 
 
 @PluginManager.acceptPlugins
@@ -34,8 +35,17 @@ class ContentDb(Db):
                 self.checkTables()
             except DbTableError:
                 pass
+
         self.site_ids = {}
         self.sites = {}
+
+        # Transform all addresses to lowercase
+        for row in self.execute("SELECT * FROM site"):
+            self.execute("UPDATE site SET address = :new_address WHERE site_id = :site_id", {
+                "site_id": row["site_id"],
+                "new_address": addressToLower(row["address"])
+            })
+
 
     def getSchema(self):
         schema = {}

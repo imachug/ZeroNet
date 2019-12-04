@@ -9,7 +9,7 @@ TEST_DATA_PATH = "src/Test/testdata"
 @pytest.mark.usefixtures("resetSettings")
 class TestSite:
     def testClone(self, site):
-        assert site.storage.directory == TEST_DATA_PATH + "/1TeSTvb4w2PWE81S2rEELgmX2GCCExQGT"
+        assert site.storage.directory == TEST_DATA_PATH + "/0testvb4w2pwe81s2reelgmx2gccexqgtgn6z2yd"
 
         # Remove old files
         if os.path.isdir(TEST_DATA_PATH + "/159EGD5srUsMP97UpcLy8AtKQbQLK2AbbL"):
@@ -22,7 +22,7 @@ class TestSite:
         )
 
         # Check if clone was successful
-        assert new_site.address == "159EGD5srUsMP97UpcLy8AtKQbQLK2AbbL"
+        assert new_site.full_address == "159EGD5srUsMP97UpcLy8AtKQbQLK2AbbL"
         assert new_site.storage.isFile("content.json")
         assert new_site.storage.isFile("index.html")
         assert new_site.storage.isFile("data/users/content.json")

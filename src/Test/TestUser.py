@@ -41,9 +41,9 @@ class TestUser:
         assert CryptBitcoin.privatekeyToAddress(auth_privatekey) == cert_auth_address
 
         # Test delete site data
-        assert "1EU1tbG9oC1A8jz2ouVwGZyQ5asrNsE4Vr" in user.sites
+        assert "0eu1tbg9oc1a8jz2ouvwgzyq5asrnse4vro4qipvc" in user.sites
         user.deleteSiteData("1EU1tbG9oC1A8jz2ouVwGZyQ5asrNsE4Vr")
-        assert "1EU1tbG9oC1A8jz2ouVwGZyQ5asrNsE4Vr" not in user.sites
+        assert "0eu1tbg9oc1a8jz2ouvwgzyq5asrnse4vro4qipvc" not in user.sites
 
         # Re-create add site should generate normal, unique auth_address
         assert not user.getAuthAddress("1EU1tbG9oC1A8jz2ouVwGZyQ5asrNsE4Vr") == cert_auth_address

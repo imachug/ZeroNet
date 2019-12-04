@@ -77,7 +77,7 @@ class TestTor:
         # Only allow to query from the locked site
         file_server.sites[site.address] = site
         connection_locked = file_server.getConnection(address + ".onion", 1544, site=site)
-        assert "body" in connection_locked.request("getFile", {"site": site.address, "inner_path": "content.json", "location": 0})
+        assert "body" in connection_locked.request("getFile", {"site": site.full_address, "inner_path": "content.json", "location": 0})
         assert connection_locked.request("getFile", {"site": "1OTHERSITE", "inner_path": "content.json", "location": 0})["error"] == "Invalid site"
 
     def testPex(self, file_server, site, site_temp):

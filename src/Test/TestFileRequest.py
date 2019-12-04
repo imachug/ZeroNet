@@ -19,22 +19,22 @@ class TestFileRequest:
         file_server.sites[site.address] = site
 
         # Normal request
-        response = connection.request("getFile", {"site": site.address, "inner_path": "content.json", "location": 0})
+        response = connection.request("getFile", {"site": site.full_address, "inner_path": "content.json", "location": 0})
         assert b"sign" in response["body"]
 
-        response = connection.request("getFile", {"site": site.address, "inner_path": "content.json", "location": 0, "file_size": site.storage.getSize("content.json")})
+        response = connection.request("getFile", {"site": site.full_address, "inner_path": "content.json", "location": 0, "file_size": site.storage.getSize("content.json")})
         assert b"sign" in response["body"]
 
         # Invalid file
-        response = connection.request("getFile", {"site": site.address, "inner_path": "invalid.file", "location": 0})
+        response = connection.request("getFile", {"site": site.full_address, "inner_path": "invalid.file", "location": 0})
         assert "File read error" in response["error"]
 
         # Location over size
-        response = connection.request("getFile", {"site": site.address, "inner_path": "content.json", "location": 1024 * 1024})
+        response = connection.request("getFile", {"site": site.full_address, "inner_path": "content.json", "location": 1024 * 1024})
         assert "File read error" in response["error"]
 
         # Stream from parent dir
-        response = connection.request("getFile", {"site": site.address, "inner_path": "../users.json", "location": 0})
+        response = connection.request("getFile", {"site": site.full_address, "inner_path": "../users.json", "location": 0})
         assert "File read exception" in response["error"]
 
         # Invalid site
@@ -45,13 +45,13 @@ class TestFileRequest:
         assert "Unknown site" in response["error"]
 
         # Invalid size
-        response = connection.request("getFile", {"site": site.address, "inner_path": "content.json", "location": 0, "file_size": 1234})
+        response = connection.request("getFile", {"site": site.full_address, "inner_path": "content.json", "location": 0, "file_size": 1234})
         assert "File size does not match" in response["error"]
 
         # Invalid path
         for path in ["../users.json", "./../users.json", "data/../content.json", ".../users.json"]:
             for sep in ["/", "\\"]:
-                response = connection.request("getFile", {"site": site.address, "inner_path": path.replace("/", sep), "location": 0})
+                response = connection.request("getFile", {"site": site.full_address, "inner_path": path.replace("/", sep), "location": 0})
                 assert response["error"] == 'File read exception'
 
         connection.close()
@@ -64,25 +64,25 @@ class TestFileRequest:
         file_server.sites[site.address] = site
 
         buff = io.BytesIO()
-        response = connection.request("streamFile", {"site": site.address, "inner_path": "content.json", "location": 0}, buff)
+        response = connection.request("streamFile", {"site": site.full_address, "inner_path": "content.json", "location": 0}, buff)
         assert "stream_bytes" in response
         assert b"sign" in buff.getvalue()
 
         # Invalid file
         buff = io.BytesIO()
-        response = connection.request("streamFile", {"site": site.address, "inner_path": "invalid.file", "location": 0}, buff)
+        response = connection.request("streamFile", {"site": site.full_address, "inner_path": "invalid.file", "location": 0}, buff)
         assert "File read error" in response["error"]
 
         # Location over size
         buff = io.BytesIO()
         response = connection.request(
-            "streamFile", {"site": site.address, "inner_path": "content.json", "location": 1024 * 1024}, buff
+            "streamFile", {"site": site.full_address, "inner_path": "content.json", "location": 1024 * 1024}, buff
         )
         assert "File read error" in response["error"]
 
         # Stream from parent dir
         buff = io.BytesIO()
-        response = connection.request("streamFile", {"site": site.address, "inner_path": "../users.json", "location": 0}, buff)
+        response = connection.request("streamFile", {"site": site.full_address, "inner_path": "../users.json", "location": 0}, buff)
         assert "File read exception" in response["error"]
 
         connection.close()

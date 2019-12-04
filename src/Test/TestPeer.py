@@ -42,11 +42,11 @@ class TestPeer:
         peer_file_server = site_temp.addPeer(file_server.ip, 1544)
 
         # Testing streamFile
-        buff = peer_file_server.getFile(site_temp.address, "content.json", streaming=True)
+        buff = peer_file_server.getFile(site_temp, "content.json", streaming=True)
         assert b"sign" in buff.getvalue()
 
         # Testing getFile
-        buff = peer_file_server.getFile(site_temp.address, "content.json")
+        buff = peer_file_server.getFile(site_temp, "content.json")
         assert b"sign" in buff.getvalue()
 
         connection.close()

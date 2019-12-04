@@ -193,7 +193,7 @@ class TestBootstrapper:
     def testRequestPeers(self, file_server, site, bootstrapper_db, tor_manager):
         site.connection_server = file_server
         file_server.tor_manager = tor_manager
-        hash = hashlib.sha256(site.address.encode()).digest()
+        hash = hashlib.sha256(site.full_address.encode()).digest()
 
         # Request peers from tracker
         assert len(site.peers) == 0

@@ -10,6 +10,7 @@ from Crypt import CryptBitcoin
 from Plugin import PluginManager
 from Config import config
 from util import helper
+from util.LowerCase import addressToLower, addressToFull
 from Debug import Debug
 
 
@@ -25,10 +26,13 @@ class User(object):
         else:
             self.master_seed = CryptBitcoin.newSeed()
             self.master_address = CryptBitcoin.privatekeyToAddress(self.master_seed)
-        self.sites = data.get("sites", {})
         self.certs = data.get("certs", {})
         self.settings = data.get("settings", {})
         self.delayed_save_thread = None
+
+        self.sites = {}
+        for address, site_data in data.get("sites", {}).items():
+            self.sites[addressToLower(address)] = site_data
 
         self.log = logging.getLogger("User:%s" % self.master_address)
 
@@ -59,7 +63,8 @@ class User(object):
     @util.Noparallel()
     def generateAuthAddress(self, address):
         s = time.time()
-        address_id = self.getAddressAuthIndex(address)  # Convert site address to int
+        address_id = self.getAddressAuthIndex(addressToFull(address))  # Convert site address to int
+        address = addressToLower(address)
         auth_privatekey = CryptBitcoin.hdPrivatekey(self.master_seed, address_id)
         self.sites[address] = {
             "auth_address": CryptBitcoin.privatekeyToAddress(auth_privatekey),
@@ -72,17 +77,18 @@ class User(object):
     # Get user site data
     # Return: {"auth_address": "xxx", "auth_privatekey": "xxx"}
     def getSiteData(self, address, create=True):
-        if address not in self.sites:  # Generate new BIP32 child key based on site address
+        if addressToLower(address) not in self.sites:  # Generate new BIP32 child key based on site address
             if not create:
                 return {"auth_address": None, "auth_privatekey": None}  # Dont create user yet
             self.generateAuthAddress(address)
-        return self.sites[address]
+        return self.sites[addressToLower(address)]
 
     def deleteSiteData(self, address):
+        address = addressToLower(address)
         if address in self.sites:
             del(self.sites[address])
             self.saveDelayed()
-            self.log.debug("Deleted site: %s" % address)
+            self.log.debug("Deleted site: %s" % addressToFull(address))
 
     def setSiteSettings(self, address, settings):
         site_data = self.getSiteData(address)
@@ -96,7 +102,7 @@ class User(object):
         import random
         bip32_index = random.randrange(2 ** 256) % 100000000
         site_privatekey = CryptBitcoin.hdPrivatekey(self.master_seed, bip32_index)
-        site_address = CryptBitcoin.privatekeyToAddress(site_privatekey)
+        site_address = addressToLower(CryptBitcoin.privatekeyToAddress(site_privatekey))
         if site_address in self.sites:
             raise Exception("Random error: site exist!")
         # Save to sites

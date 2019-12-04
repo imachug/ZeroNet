@@ -239,9 +239,9 @@ class Config(object):
 
         self.parser.add_argument('--open_browser', help='Open homepage in web browser automatically',
                                  nargs='?', const="default_browser", metavar='browser_name')
-        self.parser.add_argument('--homepage', help='Web interface Homepage', default='1HeLLo4uzjaLetFx6NH3PMwFP3qbRbTf3D',
+        self.parser.add_argument('--homepage', help='Web interface Homepage', default='0hello4uzjaletfx6nh3pmwfp3qbrbtf3d4tjp0ue',
                                  metavar='address')
-        self.parser.add_argument('--updatesite', help='Source code update site', default='1uPDaT3uSyWAPdCv1WkMb5hBQjWSNNACf',
+        self.parser.add_argument('--updatesite', help='Source code update site', default='0updat3usywapdcv1wkmb5hbqjwsnnacfyvwtm8b',
                                  metavar='address')
         self.parser.add_argument('--dist_type', help='Type of installed distribution', default='source')
 

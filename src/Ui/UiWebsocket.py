@@ -19,6 +19,7 @@ from Translate import translate as _
 from util import helper
 from util import SafeRe
 from util.Flag import flag
+from util.LowerCase import addressToLower
 from Content.ContentManager import VerifyError, SignError
 
 
@@ -41,7 +42,7 @@ class UiWebsocket(object):
     # Start listener loop
     def start(self):
         ws = self.ws
-        if self.site.address == config.homepage and not self.site.page_requested:
+        if config.homepage in (self.site.address, self.site.full_address) and not self.site.page_requested:
             # Add open fileserver port message or closed port error to homepage at first request after start
             self.site.page_requested = True  # Dont add connection notification anymore
             import main
@@ -119,10 +120,7 @@ class UiWebsocket(object):
 
     # Has permission to access a site
     def hasSitePermission(self, address, cmd=None):
-        if address != self.site.address and "ADMIN" not in self.site.settings["permissions"]:
-            return False
-        else:
-            return True
+        return address in (self.site.full_address, self.site.address) or "ADMIN" in self.site.settings["permissions"]
 
     def hasFilePermission(self, inner_path):
         valid_signers = self.site.content_manager.getValidSigners(inner_path)
@@ -263,7 +261,7 @@ class UiWebsocket(object):
             "auth_key": self.site.settings["auth_key"],  # Obsolete, will be removed
             "auth_address": self.user.getAuthAddress(site.address, create=create_user),
             "cert_user_id": self.user.getCertUserId(site.address),
-            "address": site.address,
+            "address": site.full_address,
             "address_short": site.address_short,
             "settings": settings,
             "content_updated": site.content_updated,
@@ -318,7 +316,7 @@ class UiWebsocket(object):
         return back
 
     def formatAnnouncerInfo(self, site):
-        return {"address": site.address, "stats": site.announcer.stats}
+        return {"address": site.full_address, "stats": site.announcer.stats}
 
     # - Actions -
 
@@ -326,7 +324,7 @@ class UiWebsocket(object):
         if not self.hasSitePermission(address, cmd=cmd):
             return self.response(to, "No permission for site %s" % address)
         req_self = copy.copy(self)
-        req_self.site = self.server.sites.get(address)
+        req_self.site = self.server.sites.get(addressToLower(address))
         req_self.hasCmdPermission = self.hasCmdPermission  # Use the same permissions as current site
         req_obj = super(UiWebsocket, req_self)
         req = {"id": to, "cmd": cmd, "params": params}
@@ -902,7 +900,7 @@ class UiWebsocket(object):
             site.update(announce=announce, check_files=check_files, since=since)
             self.response(to, "Updated")
 
-        site = self.server.sites.get(address)
+        site = self.server.sites.get(addressToLower(address))
         if site and (site.address == self.site.address or "ADMIN" in self.site.settings["permissions"]):
             if not site.settings["serving"]:
                 site.settings["serving"] = True
@@ -915,7 +913,7 @@ class UiWebsocket(object):
     # Pause site serving
     @flag.admin
     def actionSitePause(self, to, address):
-        site = self.server.sites.get(address)
+        site = self.server.sites.get(addressToLower(address))
         if site:
             site.settings["serving"] = False
             site.saveSettings()
@@ -928,7 +926,7 @@ class UiWebsocket(object):
     # Resume site serving
     @flag.admin
     def actionSiteResume(self, to, address):
-        site = self.server.sites.get(address)
+        site = self.server.sites.get(addressToLower(address))
         if site:
             site.settings["serving"] = True
             site.saveSettings()
@@ -942,7 +940,7 @@ class UiWebsocket(object):
     @flag.admin
     @flag.no_multiuser
     def actionSiteDelete(self, to, address):
-        site = self.server.sites.get(address)
+        site = self.server.sites.get(addressToLower(address))
         if site:
             site.delete()
             self.user.deleteSiteData(address)
@@ -954,10 +952,10 @@ class UiWebsocket(object):
 
     def cbSiteClone(self, to, address, root_inner_path="", target_address=None, redirect=True):
         self.cmd("notification", ["info", _["Cloning site..."]])
-        site = self.server.sites.get(address)
+        site = self.server.sites.get(addressToLower(address))
         response = {}
         if target_address:
-            target_site = self.server.sites.get(target_address)
+            target_site = self.server.sites.get(addressToLower(target_address))
             privatekey = self.user.getSiteData(target_site.address).get("privatekey")
             site.clone(target_address, privatekey, root_inner_path=root_inner_path)
             self.cmd("notification", ["done", _["Site source code upgraded!"]])
@@ -983,11 +981,11 @@ class UiWebsocket(object):
             self.response(to, {"error": "Not a site: %s" % address})
             return
 
-        if not self.server.sites.get(address):
+        if not self.server.sites.get(addressToLower(address)):
             # Don't expose site existence
             return
 
-        site = self.server.sites.get(address)
+        site = self.server.sites.get(addressToLower(address))
         if site.bad_files:
             for bad_inner_path in list(site.bad_files.keys()):
                 is_user_file = "cert_signers" in site.content_manager.getRules(bad_inner_path)

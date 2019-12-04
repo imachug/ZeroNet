@@ -15,12 +15,12 @@ class TestContentFilter:
     def createInclude(self, site):
         site.storage.writeJson("filters.json", {
             "mutes": {"1J6UrZMkarjVg5ax9W4qThir3BFUikbW6C": {}},
-            "siteblocks": {site.address: {}}
+            "siteblocks": {site.full_address: {}}
         })
 
     def testIncludeLoad(self, site, filter_storage):
         self.createInclude(site)
-        filter_storage.file_content["includes"]["%s/%s" % (site.address, "filters.json")] = {
+        filter_storage.file_content["includes"]["%s/%s" % (site.full_address, "filters.json")] = {
             "date_added": 1528295893,
         }
 
@@ -40,14 +40,14 @@ class TestContentFilter:
         assert site.storage.query(query_num_json).fetchone()["num"] == 2
 
         # Add include
-        filter_storage.includeAdd(site.address, "filters.json")
+        filter_storage.includeAdd(site.full_address, "filters.json")
 
         assert filter_storage.isSiteblocked(site.address)
         assert filter_storage.isMuted("1J6UrZMkarjVg5ax9W4qThir3BFUikbW6C")
         assert site.storage.query(query_num_json).fetchone()["num"] == 0
 
         # Remove include
-        filter_storage.includeRemove(site.address, "filters.json")
+        filter_storage.includeRemove(site.full_address, "filters.json")
 
         assert not filter_storage.isSiteblocked(site.address)
         assert not filter_storage.isMuted("1J6UrZMkarjVg5ax9W4qThir3BFUikbW6C")
@@ -55,7 +55,7 @@ class TestContentFilter:
 
     def testIncludeChange(self, site, filter_storage):
         self.createInclude(site)
-        filter_storage.includeAdd(site.address, "filters.json")
+        filter_storage.includeAdd(site.full_address, "filters.json")
         assert filter_storage.isSiteblocked(site.address)
         assert filter_storage.isMuted("1J6UrZMkarjVg5ax9W4qThir3BFUikbW6C")
 

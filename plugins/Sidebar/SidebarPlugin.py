@@ -441,6 +441,7 @@ class UiWebsocketPlugin(object):
              {donate_key}
             """))
         else:
+            full_site_address = self.site.full_address
             body.append(_("""
               <a href='bitcoin:{site_address}' class='button' id='button-donate'>{_[Donate]}</a>
             """))
@@ -735,7 +736,7 @@ class UiWebsocketPlugin(object):
     @flag.admin
     @flag.no_multiuser
     def actionSiteSetOwned(self, to, owned):
-        if self.site.address == config.updatesite:
+        if config.updatesite in (self.site.full_address, self.site.address):
             return self.response(to, "You can't change the ownership of the updater site")
 
         self.site.settings["own"] = bool(owned)

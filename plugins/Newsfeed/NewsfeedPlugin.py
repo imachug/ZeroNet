@@ -73,7 +73,7 @@ class UiWebsocketPlugin(object):
 
                 except Exception as err:  # Log error
                     self.log.error("%s feed query %s error: %s" % (address, name, Debug.formatException(err)))
-                    stats.append({"site": site.address, "feed_name": name, "error": str(err)})
+                    stats.append({"site": site.full_address, "feed_name": name, "error": str(err)})
                     continue
 
                 for row in res:
@@ -86,10 +86,10 @@ class UiWebsocketPlugin(object):
                     if "date_added" not in row or row["date_added"] > time.time() + 120:
                         self.log.debug("Newsfeed item from the future from from site %s" % address)
                         continue  # Feed item is in the future, skip it
-                    row["site"] = address
+                    row["site"] = site.full_address
                     row["feed_name"] = name
                     rows.append(row)
-                stats.append({"site": site.address, "feed_name": name, "taken": round(time.time() - s, 3)})
+                stats.append({"site": site.full_address, "feed_name": name, "taken": round(time.time() - s, 3)})
                 time.sleep(0.001)
         return self.response(to, {"rows": rows, "stats": stats, "num": len(rows), "sites": num_sites, "taken": round(time.time() - total_s, 3)})
 
@@ -121,7 +121,7 @@ class UiWebsocketPlugin(object):
                 continue
 
             if "site" in filters:
-                if filters["site"].lower() not in [site.address, site.content_manager.contents["content.json"].get("title").lower()]:
+                if filters["site"].lower() not in [site.full_address, site.address, site.content_manager.contents["content.json"].get("title").lower()]:
                     continue
 
             if site.storage.db:  # Database loaded
@@ -164,7 +164,7 @@ class UiWebsocketPlugin(object):
                     res = site.storage.query(str(db_query), params)
                 except Exception as err:
                     self.log.error("%s feed query %s error: %s" % (address, name, Debug.formatException(err)))
-                    stats.append({"site": site.address, "feed_name": name, "error": str(err), "query": query})
+                    stats.append({"site": site.full_address, "feed_name": name, "error": str(err), "query": query})
                     continue
                 for row in res:
                     row = dict(row)
@@ -173,7 +173,7 @@ class UiWebsocketPlugin(object):
                     row["site"] = address
                     row["feed_name"] = name
                     rows.append(row)
-                stats.append({"site": site.address, "feed_name": name, "taken": round(time.time() - s, 3)})
+                stats.append({"site": site.full_address, "feed_name": name, "taken": round(time.time() - s, 3)})
         return self.response(to, {"rows": rows, "num": len(rows), "sites": num_sites, "taken": round(time.time() - total_s, 3), "stats": stats})
 
 

@@ -208,12 +208,12 @@ class Peer(object):
         s = time.time()
         while True:  # Read in smaller parts
             if config.stream_downloads or read_bytes > 256 * 1024 or streaming:
-                res = self.request("streamFile", {"site": site, "inner_path": inner_path, "location": location, "read_bytes": read_bytes, "file_size": file_size}, stream_to=buff)
+                res = self.request("streamFile", {"site": site.full_address, "inner_path": inner_path, "location": location, "read_bytes": read_bytes, "file_size": file_size}, stream_to=buff)
                 if not res or "location" not in res:  # Error
                     return False
             else:
                 self.log("Send: %s" % inner_path)
-                res = self.request("getFile", {"site": site, "inner_path": inner_path, "location": location, "read_bytes": read_bytes, "file_size": file_size})
+                res = self.request("getFile", {"site": site.full_address, "inner_path": inner_path, "location": location, "read_bytes": read_bytes, "file_size": file_size})
                 if not res or "location" not in res:  # Error
                     return False
                 self.log("Recv: %s" % inner_path)
@@ -270,7 +270,7 @@ class Peer(object):
 
         # give back 5 connectible peers
         packed_peers = helper.packPeers(self.site.getConnectablePeers(5, allow_private=False))
-        request = {"site": site.address, "peers": packed_peers["ipv4"], "need": need_num}
+        request = {"site": site.full_address, "peers": packed_peers["ipv4"], "need": need_num}
         if packed_peers["onion"]:
             request["peers_onion"] = packed_peers["onion"]
         if packed_peers["ipv6"]:
@@ -307,7 +307,7 @@ class Peer(object):
     # List modified files since the date
     # Return: {inner_path: modification date,...}
     def listModified(self, since):
-        return self.request("listModified", {"since": since, "site": self.site.address})
+        return self.request("listModified", {"since": since, "site": self.site.full_address})
 
     def updateHashfield(self, force=False):
         # Don't update hashfield again in 5 min
@@ -315,7 +315,7 @@ class Peer(object):
             return False
 
         self.time_hashfield = time.time()
-        res = self.request("getHashfield", {"site": self.site.address})
+        res = self.request("getHashfield", {"site": self.site.full_address})
         if not res or "error" in res or "hashfield_raw" not in res:
             return False
         self.hashfield.replaceFromBytes(res["hashfield_raw"])
@@ -325,7 +325,7 @@ class Peer(object):
     # Find peers for hashids
     # Return: {hash1: ["ip:port", "ip:port",...],...}
     def findHashIds(self, hash_ids):
-        res = self.request("findHashIds", {"site": self.site.address, "hash_ids": hash_ids})
+        res = self.request("findHashIds", {"site": self.site.full_address, "hash_ids": hash_ids})
         if not res or "error" in res or type(res) is not dict:
             return False
 
@@ -357,20 +357,20 @@ class Peer(object):
         if self.time_my_hashfield_sent and self.site.content_manager.hashfield.time_changed <= self.time_my_hashfield_sent:
             return False  # Peer already has the latest hashfield
 
-        res = self.request("setHashfield", {"site": self.site.address, "hashfield_raw": self.site.content_manager.hashfield.tobytes()})
+        res = self.request("setHashfield", {"site": self.site.full_address, "hashfield_raw": self.site.content_manager.hashfield.tobytes()})
         if not res or "error" in res:
             return False
         else:
             self.time_my_hashfield_sent = time.time()
             return True
 
-    def publish(self, address, inner_path, body, modified, diffs=[]):
+    def publish(self, site, inner_path, body, modified, diffs=[]):
         if len(body) > 10 * 1024 and self.connection and self.connection.handshake.get("rev", 0) >= 4095:
             # To save bw we don't push big content.json to peers
             body = b""
 
         return self.request("update", {
-            "site": address,
+            "site": site.full_address,
             "inner_path": inner_path,
             "body": body,
             "modified": modified,

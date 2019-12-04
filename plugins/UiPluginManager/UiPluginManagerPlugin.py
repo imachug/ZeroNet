@@ -148,7 +148,7 @@ class UiWebsocketPlugin(object):
             source_path = site.storage.getPath(inner_path)
 
         target_path = plugin_manager.path_installed_plugins + "/" + address + "/" + inner_path
-        plugin_config = plugin_manager.config.setdefault(site.address, {}).setdefault(inner_path, {})
+        plugin_config = plugin_manager.config.setdefault(site.full_address, {}).setdefault(inner_path, {})
 
         # Make sure plugin (not)installed
         if action in ("add", "add_request") and os.path.isdir(target_path):
@@ -181,7 +181,7 @@ class UiWebsocketPlugin(object):
         if not res:
             return None
 
-        self.pluginAction("add", self.site.address, inner_path)
+        self.pluginAction("add", self.site.full_address, inner_path)
         PluginManager.plugin_manager.saveConfig()
 
         self.cmd(
@@ -194,7 +194,7 @@ class UiWebsocketPlugin(object):
 
     @flag.no_multiuser
     def actionPluginAddRequest(self, to, inner_path):
-        self.pluginAction("add_request", self.site.address, inner_path)
+        self.pluginAction("add_request", self.site.full_address, inner_path)
         plugin_info = self.site.storage.loadJson(inner_path + "/plugin_info.json")
         warning = "<b>Warning!<br/>Plugins has the same permissions as the ZeroNet client.<br/>"
         warning += "Do not install it if you don't trust the developer.</b>"

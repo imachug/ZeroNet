@@ -104,7 +104,7 @@ class TestBigfile:
         # Add file_server as peer to client
         peer_file_server = site_temp.addPeer(file_server.ip, 1544)
 
-        buff = peer_file_server.getFile(site_temp.address, "%s|%s-%s" % (inner_path, 5 * 1024 * 1024, 6 * 1024 * 1024))
+        buff = peer_file_server.getFile(site_temp, "%s|%s-%s" % (inner_path, 5 * 1024 * 1024, 6 * 1024 * 1024))
 
         assert len(buff.getvalue()) == 1 * 1024 * 1024  # Correct block size
         assert buff.getvalue().startswith(b"Test524")  # Correct data
@@ -269,10 +269,10 @@ class TestBigfile:
         peer2 = site.addPeer(file_server.ip, 1545, return_peer=True)
 
         # Should drop error on first block request
-        assert not peer2.getFile(site.address, "%s|0-%s" % (inner_path, 1024 * 1024 * 1))
+        assert not peer2.getFile(site, "%s|0-%s" % (inner_path, 1024 * 1024 * 1))
 
         # Should not drop error for second block request
-        assert peer2.getFile(site.address, "%s|%s-%s" % (inner_path, 1024 * 1024 * 1, 1024 * 1024 * 2))
+        assert peer2.getFile(site, "%s|%s-%s" % (inner_path, 1024 * 1024 * 1, 1024 * 1024 * 2))
 
     def benchmarkPeerMemory(self, site, file_server):
         # Init source server

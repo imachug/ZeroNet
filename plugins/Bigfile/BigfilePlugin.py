@@ -22,6 +22,7 @@ with warnings.catch_warnings():
 from util import helper
 from util import Msgpack
 from util.Flag import flag
+from util.LowerCase import addressToLower
 import util
 from .BigfilePiecefield import BigfilePiecefield, BigfilePiecefieldPacked
 
@@ -631,7 +632,7 @@ class FileRequestPlugin(object):
         return super(FileRequestPlugin, self).isReadable(site, inner_path, file, pos)
 
     def actionGetPiecefields(self, params):
-        site = self.sites.get(params["site"])
+        site = self.sites.get(addressToLower(params["site"]))
         if not site or not site.isServing():  # Site unknown or not serving
             self.response({"error": "Unknown site"})
             return False
@@ -645,7 +646,7 @@ class FileRequestPlugin(object):
         self.response({"piecefields_packed": piecefields_packed})
 
     def actionSetPiecefields(self, params):
-        site = self.sites.get(params["site"])
+        site = self.sites.get(addressToLower(params["site"]))
         if not site or not site.isServing():  # Site unknown or not serving
             self.response({"error": "Unknown site"})
             self.connection.badAction(5)
@@ -686,7 +687,7 @@ class PeerPlugin(object):
             return False
 
         self.time_piecefields_updated = time.time()
-        res = self.request("getPiecefields", {"site": self.site.address})
+        res = self.request("getPiecefields", {"site": self.site.full_address})
         if not res or "error" in res:
             return False
 

@@ -8,6 +8,8 @@ from Debug import Debug
 from Plugin import PluginManager
 from Config import config
 from util import helper
+from util.LowerCase import addressToLower
+
 
 class ContentFilterStorage(object):
     def __init__(self, site_manager):
@@ -19,11 +21,6 @@ class ContentFilterStorage(object):
         # Set default values for filters.json
         if not self.file_content:
             self.file_content = {}
-
-        # Site blacklist renamed to site blocks
-        if "site_blacklist" in self.file_content:
-            self.file_content["siteblocks"] = self.file_content["site_blacklist"]
-            del self.file_content["site_blacklist"]
 
         for key in ["mutes", "siteblocks", "includes"]:
             if key not in self.file_content:
@@ -39,7 +36,26 @@ class ContentFilterStorage(object):
             os.rename("%s/mutes.json" % config.data_dir, self.file_path)
         if os.path.isfile(self.file_path):
             try:
-                return json.load(open(self.file_path))
+                data = json.load(open(self.file_path))
+
+                # Site blacklist renamed to site blocks
+                if "site_blacklist" in data:
+                    data["siteblocks"] = data["site_blacklist"]
+                    del data["site_blacklist"]
+
+                # Convert addresses to lower-case
+                for user in data["mutes"].values():
+                    user["source"] = addressToLower(user["source"])
+
+                data["siteblocks"] = {
+                    (
+                        address if address.startswith("0x")  # SHA
+                        else addressToLower(address)  # public address
+                    ): site
+                    for address, site in data["siteblocks"].items()
+                }
+
+                return data
             except Exception as err:
                 self.log.error("Error loading filters.json: %s" % err)
                 return None

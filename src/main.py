@@ -503,13 +503,18 @@ class Actions(object):
         from Crypt import CryptConnection
         CryptConnection.manager.loadCerts()
 
+        from Site.Site import Site
+        from Site import SiteManager
+        SiteManager.site_manager.load()
+        site = Site(site, allow_create=False)
+
         from Peer import Peer
-        logging.info("Getting %s/%s from peer: %s:%s..." % (site, filename, peer_ip, peer_port))
+        logging.info("Getting %s/%s from peer: %s:%s..." % (site.address, filename, peer_ip, peer_port))
         peer = Peer(peer_ip, peer_port)
         s = time.time()
         if benchmark:
             for i in range(10):
-                peer.getFile(site, filename),
+                peer.getFile(site, filename)
             print("Response time: %.3fs" % (time.time() - s))
             input("Check memory")
         else:

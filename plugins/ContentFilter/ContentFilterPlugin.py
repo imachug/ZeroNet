@@ -8,6 +8,7 @@ from Plugin import PluginManager
 from Translate import Translate
 from Config import config
 from util.Flag import flag
+from util.LowerCase import addressToLower
 
 from .ContentFilterStorage import ContentFilterStorage
 
@@ -26,8 +27,8 @@ class SiteManagerPlugin(object):
         filter_storage = ContentFilterStorage(site_manager=self)
 
     def add(self, address, *args, **kwargs):
-        if filter_storage.isSiteblocked(address):
-            details = filter_storage.getSiteblockDetails(address)
+        if filter_storage.isSiteblocked(addressToLower(address)):
+            details = filter_storage.getSiteblockDetails(addressToLower(address))
             raise Exception("Site blocked: %s" % html.escape(details.get("reason", "unknown reason")))
         else:
             return super(SiteManagerPlugin, self).add(address, *args, **kwargs)
@@ -82,6 +83,7 @@ class UiWebsocketPlugin(object):
     @flag.no_multiuser
     @flag.admin
     def actionSiteblockAdd(self, to, site_address, reason=None):
+        site_address = addressToLower(site_address)
         filter_storage.file_content["siteblocks"][site_address] = {"date_added": time.time(), "reason": reason}
         filter_storage.save()
         self.response(to, "ok")
@@ -89,6 +91,7 @@ class UiWebsocketPlugin(object):
     @flag.no_multiuser
     @flag.admin
     def actionSiteblockRemove(self, to, site_address):
+        site_address = addressToLower(site_address)
         del filter_storage.file_content["siteblocks"][site_address]
         filter_storage.save()
         self.response(to, "ok")
@@ -105,7 +108,7 @@ class UiWebsocketPlugin(object):
                 return self.response(to, {"error": "Forbidden: Only ADMIN sites can manage different site include"})
             site = self.server.sites[address]
         else:
-            address = self.site.address
+            address = self.site.full_address
             site = self.site
 
         if "ADMIN" in self.getPermissions(to):
@@ -151,7 +154,7 @@ class UiWebsocketPlugin(object):
         back = []
         includes = filter_storage.file_content.get("includes", {}).values()
         for include in includes:
-            if not all_sites and include["address"] != self.site.address:
+            if not all_sites and include["address"] != self.site.full_address:
                 continue
             if filters:
                 include = dict(include)  # Don't modify original file_content
@@ -180,7 +183,7 @@ class SiteStoragePlugin(object):
         return super(SiteStoragePlugin, self).updateDbFile(inner_path, file=file, cur=cur)
 
     def onUpdated(self, inner_path, file=None):
-        file_path = "%s/%s" % (self.site.address, inner_path)
+        file_path = "%s/%s" % (self.site.full_address, inner_path)
         if file_path in filter_storage.file_content["includes"]:
             self.log.debug("Filter file updated: %s" % inner_path)
             filter_storage.includeUpdateAll()

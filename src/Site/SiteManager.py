@@ -13,6 +13,7 @@ from Config import config
 from util import helper
 from util import RateLimit
 from util import Cached
+from util.LowerCase import addressToLower, addressToFull
 
 
 @PluginManager.acceptPlugins
@@ -40,8 +41,16 @@ class SiteManager(object):
         except Exception as err:
             raise Exception("Unable to load %s: %s" % (json_path, err))
 
+
         for address, settings in data.items():
             if address not in self.sites:
+                # Rename full addresses to lower-case
+                orig_path = "%s/%s" % (config.data_dir, addressToFull(address))
+                try:
+                    os.rename(orig_path, "%s/%s" % (config.data_dir, address))
+                except OSError as e:
+                    pass
+
                 if os.path.isfile("%s/%s/content.json" % (config.data_dir, address)):
                     # Root content.json exists, try load site
                     s = time.time()
@@ -131,7 +140,7 @@ class SiteManager(object):
 
     # Checks if its a valid address
     def isAddress(self, address):
-        return re.match("^[A-Za-z0-9]{26,35}$", address)
+        return re.match("^0[a-z0-9]{32,41}$", address)
 
     def isDomain(self, address):
         return False
@@ -153,6 +162,7 @@ class SiteManager(object):
             address_resolved = self.resolveDomainCached(address)
             if address_resolved:
                 address = address_resolved
+        address = addressToLower(address)
 
         if not self.loaded:  # Not loaded yet
             self.log.debug("Loading site: %s)..." % address)
@@ -164,11 +174,8 @@ class SiteManager(object):
     def add(self, address, all_file=False, settings=None):
         from .Site import Site
         self.sites_changed = int(time.time())
-        # Try to find site with differect case
-        for recover_address, recover_site in list(self.sites.items()):
-            if recover_address.lower() == address.lower():
-                return recover_site
 
+        address = addressToLower(address)
         if not self.isAddress(address):
             return False  # Not address: %s % address
         self.log.debug("Added new site: %s" % address)
@@ -188,6 +195,7 @@ class SiteManager(object):
             address_resolved = self.resolveDomainCached(address)
             if address_resolved:
                 address = address_resolved
+        address = addressToLower(address)
 
         site = self.get(address)
         if not site:  # Site not exist yet

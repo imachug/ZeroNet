@@ -30,7 +30,7 @@ class UiWebsocketPlugin(object):
         # Add file to content.db and set it as pinned
         content_db = self.site.content_manager.contents.db
         content_inner_dir = helper.getDirname(inner_path)
-        content_db.my_optional_files[self.site.address + "/" + content_inner_dir] = time.time()
+        content_db.my_optional_files[self.site.full_address + "/" + content_inner_dir] = time.time()
         if len(content_db.my_optional_files) > 50:  # Keep only last 50
             oldest_key = min(
                 iter(content_db.my_optional_files.keys()),
@@ -112,7 +112,7 @@ class UiWebsocketPlugin(object):
 
     def actionOptionalFileList(self, to, address=None, orderby="time_downloaded DESC", limit=10, filter="downloaded", filter_inner_path=None):
         if not address:
-            address = self.site.address
+            address = self.site.full_address
 
         # Update peer numbers if necessary
         content_db = self.site.content_manager.contents.db
@@ -197,7 +197,7 @@ class UiWebsocketPlugin(object):
         if row:
             row = dict(row)
             if row["size"] > 1024 * 1024:
-                row["address"] = self.site.address
+                row["address"] = self.site.full_address
                 self.addBigfileInfo(row)
             self.response(to, row)
         else:
@@ -205,7 +205,7 @@ class UiWebsocketPlugin(object):
 
     def setPin(self, inner_path, is_pinned, address=None):
         if not address:
-            address = self.site.address
+            address = self.site.full_address
 
         if not self.hasSitePermission(address):
             return {"error": "Forbidden"}
@@ -244,7 +244,7 @@ class UiWebsocketPlugin(object):
     @flag.no_multiuser
     def actionOptionalFileDelete(self, to, inner_path, address=None):
         if not address:
-            address = self.site.address
+            address = self.site.full_address
 
         if not self.hasSitePermission(address):
             return self.response(to, {"error": "Forbidden"})

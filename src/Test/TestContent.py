@@ -100,7 +100,7 @@ class TestContent:
         content = site.content_manager.sign(inner_path, privatekey=self.privatekey, filewrite=False)
         content_old = site.content_manager.contents[inner_path]  # Content before the sign
         assert not content_old == content  # Timestamp changed
-        assert site.address in content["signs"]  # Used the site's private key to sign
+        assert site.full_address in content["signs"]  # Used the site's private key to sign
         if inner_path == "content.json":
             assert len(content["files"]) == 17
         elif inner_path == "data/test-include/content.json":

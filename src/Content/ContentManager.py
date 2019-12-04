@@ -731,7 +731,7 @@ class ContentManager(object):
             new_content["zeronet_version"] = config.version
             new_content["signs_required"] = content.get("signs_required", 1)
 
-        new_content["address"] = self.site.address
+        new_content["address"] = self.site.full_address
         new_content["inner_path"] = inner_path
 
         # Verify private key
@@ -746,7 +746,7 @@ class ContentManager(object):
             )
         self.log.info("Correct %s in valid signers: %s" % (privatekey_address, valid_signers))
 
-        if inner_path == "content.json" and privatekey_address == self.site.address:
+        if inner_path == "content.json" and privatekey_address == self.site.full_address:
             # If signing using the root key, then sign the valid signers
             signers_data = "%s:%s" % (new_content["signs_required"], ",".join(valid_signers))
             new_content["signers_sign"] = CryptBitcoin.sign(str(signers_data), privatekey)
@@ -793,8 +793,8 @@ class ContentManager(object):
             if rules and "signers" in rules:
                 valid_signers += rules["signers"]
 
-        if self.site.address not in valid_signers:
-            valid_signers.append(self.site.address)  # Site address always valid
+        if self.site.full_address not in valid_signers:
+            valid_signers.append(self.site.full_address)  # Site address always valid
         return valid_signers
 
     # Return: The required number of valid signs for the content.json
@@ -857,8 +857,8 @@ class ContentManager(object):
         site_size_limit = self.site.getSizeLimit() * 1024 * 1024
 
         # Check site address
-        if content.get("address") and content["address"] != self.site.address:
-            raise VerifyError("Wrong site address: %s != %s" % (content["address"], self.site.address))
+        if content.get("address") and content["address"] != self.site.full_address:
+            raise VerifyError("Wrong site address: %s != %s" % (content["address"], self.site.full_address))
 
         # Check file inner path
         if content.get("inner_path") and content["inner_path"] != inner_path:
@@ -980,7 +980,7 @@ class ContentManager(object):
 
                     if inner_path == "content.json" and len(valid_signers) > 1:  # Check signers_sign on root content.json
                         signers_data = "%s:%s" % (signs_required, ",".join(valid_signers))
-                        if not CryptBitcoin.verify(signers_data, self.site.address, new_content["signers_sign"]):
+                        if not CryptBitcoin.verify(signers_data, self.site.full_address, new_content["signers_sign"]):
                             raise VerifyError("Invalid signers_sign!")
 
                     if inner_path != "content.json" and not self.verifyCert(inner_path, new_content):  # Check if cert valid

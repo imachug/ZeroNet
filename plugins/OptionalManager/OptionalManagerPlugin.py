@@ -5,6 +5,7 @@ import collections
 import gevent
 
 from util import helper
+from util.LowerCase import addressToLower
 from Plugin import PluginManager
 from . import ContentDbPlugin
 
@@ -189,7 +190,7 @@ class FileRequestPlugin(object):
         if not stats:
             # Only track the last request of files
             return False
-        site_id = ContentDbPlugin.content_db.site_ids[site_address]
+        site_id = ContentDbPlugin.content_db.site_ids[addressToLower(site_address)]
         if site_id and ContentDbPlugin.content_db.isOptionalFile(site_id, inner_path):
             request_log[site_id][inner_path] += stats["bytes_sent"]
 

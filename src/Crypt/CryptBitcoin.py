@@ -3,6 +3,7 @@ import base64
 import time
 
 from util import OpensslFindPatch
+from util.LowerCase import addressToFull
 from lib import pybitcointools as btctools
 from Config import config
 
@@ -110,6 +111,6 @@ def verify(data, valid_address, sign, lib_verify=None):  # Verify data using add
         raise Exception("No library enabled for signature verification")
 
     if type(valid_address) is list:  # Any address in the list
-        return sign_address in valid_address
+        return sign_address in [addressToFull(addr) for addr in valid_address]
     else:  # One possible address
-        return sign_address == valid_address
+        return sign_address == addressToFull(valid_address)

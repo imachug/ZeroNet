@@ -84,7 +84,7 @@ class Worker(object):
 
             error_message = "Unknown error"
             try:
-                buff = self.peer.getFile(site.address, task["inner_path"], task["size"])
+                buff = self.peer.getFile(site, task["inner_path"], task["size"])
             except Exception as err:
                 self.manager.log.debug("%s: getFile error: %s" % (self.key, err))
                 error_message = str(err)

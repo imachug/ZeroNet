@@ -8,6 +8,7 @@ from Translate import Translate
 from util import RateLimit
 from util import helper
 from util.Flag import flag
+from util.LowerCase import addressToLower, addressToFull
 from Debug import Debug
 try:
     import OptionalManager.UiWebsocketPlugin  # To make optioanlFileInfo merger sites compatible
@@ -29,13 +30,14 @@ if "_" not in locals():
 
 # Check if the site has permission to this merger site
 def checkMergerPath(address, inner_path):
+    address = addressToLower(address)
     merged_match = re.match("^merged-(.*?)/([A-Za-z0-9]{26,35})/", inner_path)
     if merged_match:
         merger_type = merged_match.group(1)
         # Check if merged site is allowed to include other sites
         if merger_type in merger_db.get(address, []):
             # Check if included site allows to include
-            merged_address = merged_match.group(2)
+            merged_address = addressToLower(merged_match.group(2))
             if merged_db.get(merged_address) == merger_type:
                 inner_path = re.sub("^merged-(.*?)/([A-Za-z0-9]{26,35})/", "", inner_path)
                 return merged_address, inner_path
@@ -116,16 +118,16 @@ class UiWebsocketPlugin(object):
                 continue  # Site not for us
             if query_site_info:
                 site = self.server.sites.get(address)
-                ret[address] = self.formatSiteInfo(site, create_user=False)
+                ret[addressToFull(address)] = self.formatSiteInfo(site, create_user=False)
             else:
-                ret[address] = merged_type
+                ret[addressToFull(address)] = merged_type
         self.response(to, ret)
 
     def hasSitePermission(self, address, *args, **kwargs):
         if super(UiWebsocketPlugin, self).hasSitePermission(address, *args, **kwargs):
             return True
         else:
-            if self.site.address in [merger_site.address for merger_site in merged_to_merger.get(address, [])]:
+            if self.site.full_address in [merger_site.address for merger_site in merged_to_merger.get(address, [])]:
                 return True
             else:
                 return False
@@ -133,7 +135,7 @@ class UiWebsocketPlugin(object):
     # Add support merger sites for file commands
     def mergerFuncWrapper(self, func_name, to, inner_path, *args, **kwargs):
         if inner_path.startswith("merged-"):
-            merged_address, merged_inner_path = checkMergerPath(self.site.address, inner_path)
+            merged_address, merged_inner_path = checkMergerPath(self.site.full_address, inner_path)
 
             # Set the same cert for merged site
             merger_cert = self.user.getSiteData(self.site.address).get("cert")
@@ -179,7 +181,7 @@ class UiWebsocketPlugin(object):
     def actionBigfileUploadInit(self, to, inner_path, *args, **kwargs):
         back = self.mergerFuncWrapper("actionBigfileUploadInit", to, inner_path, *args, **kwargs)
         if inner_path.startswith("merged-"):
-            merged_address, merged_inner_path = checkMergerPath(self.site.address, inner_path)
+            merged_address, merged_inner_path = checkMergerPath(self.site.full_address, inner_path)
             back["inner_path"] = "merged-%s/%s/%s" % (merged_db[merged_address], merged_address, back["inner_path"])
         return back
 
@@ -187,7 +189,7 @@ class UiWebsocketPlugin(object):
     def mergerFuncWrapperWithPrivatekey(self, func_name, to, privatekey, inner_path, *args, **kwargs):
         func = getattr(super(UiWebsocketPlugin, self), func_name)
         if inner_path.startswith("merged-"):
-            merged_address, merged_inner_path = checkMergerPath(self.site.address, inner_path)
+            merged_address, merged_inner_path = checkMergerPath(self.site.full_address, inner_path)
             merged_site = self.server.sites.get(merged_address)
 
             # Set the same cert for merged site
@@ -303,12 +305,12 @@ class SiteStoragePlugin(object):
 
         super(SiteStoragePlugin, self).onUpdated(inner_path, file)
 
-        merged_type = merged_db.get(self.site.address)
+        merged_type = merged_db.get(self.site.full_address)
 
-        for merger_site in merged_to_merger.get(self.site.address, []):
+        for merger_site in merged_to_merger.get(self.site.full_address, []):
             if merger_site.address == self.site.address:  # Avoid infinite loop
                 continue
-            virtual_path = "merged-%s/%s/%s" % (merged_type, self.site.address, inner_path)
+            virtual_path = "merged-%s/%s/%s" % (merged_type, self.site.full_address, inner_path)
             if inner_path.endswith(".json"):
                 if file is not None:
                     merger_site.storage.onUpdated(virtual_path, file=file)

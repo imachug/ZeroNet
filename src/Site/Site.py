@@ -23,6 +23,7 @@ from Crypt import CryptHash
 from util import helper
 from util import Diff
 from util import GreenletManager
+from util.LowerCase import addressToLower, addressToFull
 from Plugin import PluginManager
 from File import FileServer
 from .SiteAnnouncer import SiteAnnouncer
@@ -33,9 +34,10 @@ from . import SiteManager
 class Site(object):
 
     def __init__(self, address, allow_create=True, settings=None):
-        self.address = str(re.sub("[^A-Za-z0-9]", "", address))  # Make sure its correct address
-        self.address_hash = hashlib.sha256(self.address.encode("ascii")).digest()
-        self.address_sha1 = hashlib.sha1(self.address.encode("ascii")).digest()
+        self.address = str(re.sub("[^a-z0-9]", "", addressToLower(address)))  # Make sure its correct address
+        self.full_address = addressToFull(self.address)
+        self.address_hash = hashlib.sha256(self.full_address.encode("ascii")).digest()
+        self.address_sha1 = hashlib.sha1(self.full_address.encode("ascii")).digest()
         self.address_short = "%s..%s" % (self.address[:6], self.address[-4:])  # Short address for logging
         self.log = logging.getLogger("Site:%s" % self.address_short)
         self.addEventListeners()
@@ -115,7 +117,10 @@ class Site(object):
                 self.settings["autodownloadoptional"] = True
 
         # Add admin permissions to homepage
-        if self.address in (config.homepage, config.updatesite) and "ADMIN" not in self.settings["permissions"]:
+        if (
+            "ADMIN" not in self.settings["permissions"] and
+            any(addr in (config.homepage, config.updatesite) for addr in (self.address, self.full_address))
+        ):
             self.settings["permissions"].append("ADMIN")
 
         return
@@ -541,7 +546,7 @@ class Site(object):
             for retry in range(2):
                 try:
                     with gevent.Timeout(timeout, False):
-                        result = peer.publish(self.address, inner_path, body, content_json_modified, diffs)
+                        result = peer.publish(self, inner_path, body, content_json_modified, diffs)
                     if result:
                         break
                 except Exception as err:
@@ -641,7 +646,7 @@ class Site(object):
             if "domain" in content_json:
                 del content_json["domain"]
             content_json["title"] = "my" + content_json["title"]
-            content_json["cloned_from"] = self.address
+            content_json["cloned_from"] = self.full_address
             content_json["clone_root"] = root_inner_path
             content_json["files"] = {}
             if address_index:

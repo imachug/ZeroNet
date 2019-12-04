@@ -167,7 +167,7 @@ class ContentDbPlugin(object):
                 is_downloaded = 1
             else:
                 is_downloaded = 0
-            if site.address + "/" + content_inner_dir in self.my_optional_files:
+            if site.full_address + "/" + content_inner_dir in self.my_optional_files:
                 is_pinned = 1
             else:
                 is_pinned = 0
