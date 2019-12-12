@@ -26,6 +26,10 @@ class LogDb(logging.StreamHandler):
         self.lines.append([time.time(), record.levelname, self.format(record)])
 
 
+class ClosedRequest:
+    pass
+
+
 # Skip websocket handler if not necessary
 class UiWSGIHandler(WSGIHandler):
 
@@ -34,6 +38,7 @@ class UiWSGIHandler(WSGIHandler):
         super(UiWSGIHandler, self).__init__(*args, **kwargs)
         self.args = args
         self.kwargs = kwargs
+        self.__is_closed = False
 
     def handleError(self, err):
         if config.debug:  # Allow websocket errors to appear on /Debug
@@ -58,7 +63,6 @@ class UiWSGIHandler(WSGIHandler):
                 self.handleError(err)
         else:  # Standard HTTP request
             try:
-                self.environ["wsgi.socket"] = self.socket
                 super(UiWSGIHandler, self).run_application()
             except (ConnectionAbortedError, ConnectionResetError) as err:
                 logging.warning("UiWSGIHandler connection error: %s" % err)
@@ -66,11 +70,18 @@ class UiWSGIHandler(WSGIHandler):
                 logging.error("UiWSGIHandler error: %s" % Debug.formatException(err))
                 self.handleError(err)
 
+    def process_result(self):
+        if self.result is ClosedRequest:
+            self.__is_closed = True
+        else:
+            super(UiWSGIHandler, self).process_result()
+
     def handle(self):
         # Save socket to be able to close them properly on exit
         self.server.sockets[self.client_address] = self.socket
         super(UiWSGIHandler, self).handle()
-        del self.server.sockets[self.client_address]
+        if not self.__is_closed:
+            del self.server.sockets[self.client_address]
 
 
 class UiServer:
@@ -123,37 +134,14 @@ class UiServer:
                 start_response("400 Bad Request", [])(b"")
                 return []
 
-            # Open socket to myself
-            sock = socket.socket()
-            sock.connect(("127.0.0.1", config.ui_port))
-            start_response("200 OK", [])(b"")
+            start_response("200 Connection Established", [])(b"")
 
-            # Handle input
-            def pipeInput():
-                try:
-                    while True:
-                        data = env["wsgi.socket"].recv(1024)
-                        if data == b"":
-                            break
-                        sock.send(data)
-                except OSError:
-                    pass
-                finally:
-                    sock.close()
-            gevent.spawn(pipeInput)
+            # Pass the request back to WSGI server
+            wsgi_sock = env["wsgi.input"].rfile.raw._sock
+            self.server.handle(wsgi_sock, (env["REMOTE_ADDR"], int(env["REMOTE_PORT"])))
 
-            # Pipe output
-            try:
-                while True:
-                    data = sock.recv(1024)
-                    if data == b"":
-                        break
-                    env["wsgi.socket"].send(data)
-            except OSError:
-                pass
-            finally:
-                env["wsgi.socket"].close()
-            return []
+            # Stop from sending anything to closed socket
+            return ClosedRequest
 
         path = bytes(env["PATH_INFO"], "raw-unicode-escape").decode("utf8")
         if env.get("QUERY_STRING"):
