@@ -42,7 +42,8 @@ class PluginManager:
     def loadConfig(self):
         if os.path.isfile(self.config_path):
             try:
-                self.config = json.load(open(self.config_path, encoding="utf8"))
+                with open(self.config_path, encoding="utf8") as f:
+                    self.config = json.load(f)
             except Exception as err:
                 self.log.error("Error loading %s: %s" % (self.config_path, err))
                 self.config = {}
@@ -50,8 +51,8 @@ class PluginManager:
             self.config = {}
 
     def saveConfig(self):
-        f = open(self.config_path, "w", encoding="utf8")
-        json.dump(self.config, f, ensure_ascii=False, sort_keys=True, indent=2)
+        with open(self.config_path, "w", encoding="utf8") as f:
+            json.dump(self.config, f, ensure_ascii=False, sort_keys=True, indent=2)
 
     def migratePlugins(self):
         for dir_name in os.listdir(self.path_plugins):

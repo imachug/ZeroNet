@@ -8,7 +8,9 @@ from User import UserManager
 class TestMultiuser:
     def testMemorySave(self, user):
         # It should not write users to disk
-        users_before = open("%s/users.json" % config.data_dir).read()
+        with open("%s/users.json" % config.data_dir) as f:
+            users_before = f.read()
         user = UserManager.user_manager.create()
         user.save()
-        assert open("%s/users.json" % config.data_dir).read() == users_before
+        with open("%s/users.json" % config.data_dir) as f:
+            assert f.read() == users_before

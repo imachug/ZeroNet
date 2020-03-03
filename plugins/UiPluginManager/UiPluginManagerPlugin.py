@@ -53,11 +53,14 @@ class UiRequestPlugin(object):
                 DebugMedia.merge(file_path)
 
             if file_path.endswith("js"):
-                data = _.translateData(open(file_path).read(), mode="js").encode("utf8")
+                with open(file_path) as f:
+                    data = _.translateData(f.read(), mode="js")
             elif file_path.endswith("html"):
-                data = _.translateData(open(file_path).read(), mode="html").encode("utf8")
+                with open(file_path) as f:
+                    data = _.translateData(f.read(), mode="html").encode("utf8")
             else:
-                data = open(file_path, "rb").read()
+                with open(file_path, "rb") as f:
+                    data = f.read()
 
             return self.actionFile(file_path, file_obj=io.BytesIO(data), file_size=len(data))
         else:
@@ -74,7 +77,8 @@ class UiWebsocketPlugin(object):
             plugin_info = {}
             if os.path.isfile(plugin_info_path):
                 try:
-                    plugin_info = json.load(open(plugin_info_path))
+                    with open(plugin_info_path) as f:
+                        plugin_info = json.load(f)
                 except Exception as err:
                     self.log.error(
                         "Error loading plugin info for %s: %s" %

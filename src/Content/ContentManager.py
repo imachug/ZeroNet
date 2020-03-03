@@ -80,13 +80,14 @@ class ContentManager(object):
             try:
                 # Check if file is newer than what we have
                 if not force and old_content and not self.site.settings.get("own"):
-                    for line in open(content_path):
-                        if '"modified"' not in line:
-                            continue
-                        match = re.search(r"([0-9\.]+),$", line.strip(" \r\n"))
-                        if match and float(match.group(1)) <= old_content.get("modified", 0):
-                            self.log.debug("%s loadContent same json file, skipping" % content_inner_path)
-                            return [], []
+                    with open(content_path) as f:
+                        for line in f:
+                            if '"modified"' not in line:
+                                continue
+                            match = re.search(r"([0-9\.]+),$", line.strip(" \r\n"))
+                            if match and float(match.group(1)) <= old_content.get("modified", 0):
+                                self.log.debug("%s loadContent same json file, skipping" % content_inner_path)
+                                return [], []
 
                 new_content = self.site.storage.loadJson(content_inner_path)
             except Exception as err:
@@ -382,7 +383,8 @@ class ContentManager(object):
         s = time.time()
         if inner_path.endswith("content.json"):
             try:
-                is_valid = self.verifyFile(inner_path, self.site.storage.open(inner_path), ignore_same=False)
+                with self.site.storage.open(inner_path) as f:
+                    is_valid = self.verifyFile(inner_path, f, ignore_same=False)
                 if is_valid:
                     is_modified = False
                 else:
@@ -391,7 +393,8 @@ class ContentManager(object):
                 is_modified = True
         else:
             try:
-                self.verifyFile(inner_path, self.site.storage.open(inner_path), ignore_same=False)
+                with self.site.storage.open(inner_path) as f:
+                    self.verifyFile(inner_path, f, ignore_same=False)
                 is_modified = False
             except VerifyError:
                 is_modified = True
@@ -558,14 +561,17 @@ class ContentManager(object):
     def getDiffs(self, inner_path, limit=30 * 1024, update_files=True):
         if inner_path not in self.contents:
             return {}
+        def readLines(inner_path):
+            with self.site.storage.open(inner_path) as f:
+                return list(f)
         diffs = {}
         content_inner_path_dir = helper.getDirname(inner_path)
         for file_relative_path in self.contents[inner_path].get("files", {}):
             file_inner_path = content_inner_path_dir + file_relative_path
             if self.site.storage.isFile(file_inner_path + "-new"):  # New version present
                 diffs[file_relative_path] = Diff.diff(
-                    list(self.site.storage.open(file_inner_path)),
-                    list(self.site.storage.open(file_inner_path + "-new")),
+                    readLines(file_inner_path),
+                    readLines(file_inner_path + "-new"),
                     limit=limit
                 )
                 if update_files:
@@ -573,8 +579,8 @@ class ContentManager(object):
                     self.site.storage.rename(file_inner_path + "-new", file_inner_path)
             if self.site.storage.isFile(file_inner_path + "-old"):  # Old version present
                 diffs[file_relative_path] = Diff.diff(
-                    list(self.site.storage.open(file_inner_path + "-old")),
-                    list(self.site.storage.open(file_inner_path)),
+                    readLines(file_inner_path + "-old"),
+                    readLines(file_inner_path),
                     limit=limit
                 )
                 if update_files:

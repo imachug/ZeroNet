@@ -1,3 +1,4 @@
+git+https://github.com/imachug/pysha3.git@d0d4a1d35bb7a99630b32755ba826d821e5b0877
 gevent>=1.1.0; python_version < "3.8"
 https://github.com/gevent/gevent/archive/master.zip; python_version >= "3.8"
 msgpack>=0.4.4

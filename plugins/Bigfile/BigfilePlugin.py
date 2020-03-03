@@ -108,7 +108,8 @@ class UiRequestPlugin(object):
 
         else:  # Big file
             file_name = helper.getFilename(inner_path)
-            site.storage.open(upload_info["piecemap"], "wb").write(Msgpack.pack({file_name: piecemap_info}))
+            with site.storage.open(upload_info["piecemap"], "wb") as f:
+                f.write(Msgpack.pack({file_name: piecemap_info}))
 
             # Find piecemap and file relative path to content.json
             file_info = site.content_manager.getFileInfo(inner_path, new_file=True)
@@ -357,7 +358,8 @@ class ContentManagerPlugin(object):
                 return super(ContentManagerPlugin, self).hashFile(dir_inner_path, file_relative_path, optional)
 
             self.log.info("- [HASHING] %s" % file_relative_path)
-            merkle_root, piece_size, piecemap_info = self.hashBigfile(self.site.storage.open(inner_path, "rb").read, file_size)
+            with self.site.storage.open(inner_path, "rb") as f:
+                merkle_root, piece_size, piecemap_info = self.hashBigfile(f.read, file_size)
             if not hash:
                 hash = merkle_root
 
@@ -366,7 +368,8 @@ class ContentManagerPlugin(object):
                 piecemap_relative_path = file_relative_path + ".piecemap.msgpack"
                 piecemap_inner_path = inner_path + ".piecemap.msgpack"
 
-                self.site.storage.open(piecemap_inner_path, "wb").write(Msgpack.pack({file_name: piecemap_info}))
+                with self.site.storage.open(piecemap_inner_path, "wb") as f:
+                    f.write(Msgpack.pack({file_name: piecemap_info}))
 
                 back.update(super(ContentManagerPlugin, self).hashFile(dir_inner_path, piecemap_relative_path, optional=True))
 
@@ -384,7 +387,8 @@ class ContentManagerPlugin(object):
         file_info = self.site.content_manager.getFileInfo(inner_path)
         piecemap_inner_path = helper.getDirname(file_info["content_inner_path"]) + file_info["piecemap"]
         self.site.needFile(piecemap_inner_path, priority=20)
-        piecemap = Msgpack.unpack(self.site.storage.open(piecemap_inner_path, "rb").read())[helper.getFilename(inner_path)]
+        with self.site.storage.open(piecemap_inner_path, "rb") as f:
+            piecemap = Msgpack.unpack(f.read())[helper.getFilename(inner_path)]
         piecemap["piece_size"] = file_info["piece_size"]
         return piecemap
 
@@ -461,9 +465,8 @@ class SiteStoragePlugin(object):
 
         self.ensureDir(os.path.dirname(inner_path))
 
-        f = open(file_path, 'wb')
-        f.truncate(min(1024 * 1024 * 5, size))  # Only pre-allocate up to 5MB
-        f.close()
+        with open(file_path, "wb") as f:
+            f.truncate(min(1024 * 1024 * 5, size))  # Only pre-allocate up to 5MB
         if os.name == "nt":
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -510,10 +513,11 @@ class SiteStoragePlugin(object):
         piece_num = int(math.ceil(float(file_info["size"]) / file_info["piece_size"]))
         if os.path.isfile(file_path):
             if sha512 not in self.piecefields:
-                if open(file_path, "rb").read(128) == b"\0" * 128:
-                    piece_data = b"\x00"
-                else:
-                    piece_data = b"\x01"
+                with open(file_path, "rb") as f:
+                    if f.read(128) == b"\0" * 128:
+                        piece_data = b"\x00"
+                    else:
+                        piece_data = b"\x01"
                 self.log.debug("%s: File exists, but not in piecefield. Filling piecefiled with %s * %s." % (inner_path, piece_num, piece_data))
                 self.piecefields[sha512].frombytes(piece_data * piece_num)
         else:

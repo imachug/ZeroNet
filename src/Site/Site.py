@@ -90,7 +90,8 @@ class Site(object):
     # Load site settings from data/sites.json
     def loadSettings(self, settings=None):
         if not settings:
-            settings = json.load(open("%s/sites.json" % config.data_dir)).get(self.address)
+            with open("%s/sites.json" % config.data_dir) as f:
+                settings = json.load(f).get(self.address)
         if settings:
             self.settings = settings
             if "cache" not in settings:
@@ -210,7 +211,8 @@ class Site(object):
                 if diff_actions and self.bad_files.get(file_inner_path):
                     try:
                         s = time.time()
-                        new_file = Diff.patch(self.storage.open(file_inner_path, "rb"), diff_actions)
+                        with self.storage.open(file_inner_path, "rb") as f:
+                            new_file = Diff.patch(f, diff_actions)
                         new_file.seek(0)
                         time_diff = time.time() - s
 

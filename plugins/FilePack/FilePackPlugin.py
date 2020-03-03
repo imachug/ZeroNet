@@ -13,6 +13,7 @@ archive_cache = {}
 
 def closeArchive(archive_path):
     if archive_path in archive_cache:
+        archive_cache[archive_path].close()
         del archive_cache[archive_path]
 
 
@@ -72,10 +73,10 @@ class UiRequestPlugin(object):
                     return self.error403("Invalid ajax_key")
 
             try:
-                file = openArchiveFile(archive_path, path_within, file_obj=file_obj)
                 content_type = self.getContentType(file_path)
                 self.sendHeader(200, content_type=content_type, noscript=kwargs.get("header_noscript", False), allow_ajax=header_allow_ajax)
-                return self.streamFile(file)
+                with openArchiveFile(archive_path, path_within, file_obj=file_obj) as file:
+                    return self.streamFile(file)
             except Exception as err:
                 self.log.debug("Error opening archive file: %s" % Debug.formatException(err))
                 return self.error404(path)
@@ -91,7 +92,6 @@ class UiRequestPlugin(object):
                 else:
                     raise StopIteration
             except StopIteration:
-                file.close()
                 break
 
 

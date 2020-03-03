@@ -4,11 +4,15 @@ import base64
 
 
 def sha512sum(file, blocksize=65536, format="hexdigest"):
+    close = False
     if type(file) is str:  # Filename specified
         file = open(file, "rb")
+        close = True
     hash = hashlib.sha512()
     for block in iter(lambda: file.read(blocksize), b""):
         hash.update(block)
+    if close:
+        file.close()
 
     # Truncate to 256bits is good enough
     if format == "hexdigest":
@@ -18,11 +22,15 @@ def sha512sum(file, blocksize=65536, format="hexdigest"):
 
 
 def sha256sum(file, blocksize=65536):
+    close = False
     if type(file) is str:  # Filename specified
         file = open(file, "rb")
+        close = True
     hash = hashlib.sha256()
     for block in iter(lambda: file.read(blocksize), b""):
         hash.update(block)
+    if close:
+        file.close()
     return hash.hexdigest()
 
 

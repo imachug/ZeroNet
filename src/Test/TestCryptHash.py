@@ -12,11 +12,14 @@ class TestCryptBitcoin:
     def testSha(self, site):
         file_path = site.storage.getPath("dbschema.json")
         assert CryptHash.sha512sum(file_path) == sha512t_sum_hex
-        assert CryptHash.sha512sum(open(file_path, "rb")) == sha512t_sum_hex
-        assert CryptHash.sha512sum(open(file_path, "rb"), format="digest") == sha512t_sum_bin
+        with open(file_path, "rb") as f:
+            assert CryptHash.sha512sum(f) == sha512t_sum_hex
+        with open(file_path, "rb") as f:
+            assert CryptHash.sha512sum(f, format="digest") == sha512t_sum_bin
 
         assert CryptHash.sha256sum(file_path) == sha256_sum_hex
-        assert CryptHash.sha256sum(open(file_path, "rb")) == sha256_sum_hex
+        with open(file_path, "rb") as f:
+            assert CryptHash.sha256sum(f) == sha256_sum_hex
 
         with open(file_path, "rb") as f:
             hash = CryptHash.Sha512t(f.read(100))

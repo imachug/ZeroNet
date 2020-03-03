@@ -49,11 +49,12 @@ class TestMsgpack:
         Msgpack.stream(data, out_buff.write)
         out_buff.seek(0)
 
-        data_packb = {
-            "cmd": "response",
-            "body": open("%s/users.json" % config.data_dir, "rb").read(30),
-            "bin": bin_data
-        }
+        with open("%s/users.json" % config.data_dir, "rb") as f:
+            data_packb = {
+                "cmd": "response",
+                "body": f.read(30),
+                "bin": bin_data
+            }
 
         out_buff.seek(0)
         data_unpacked = Msgpack.unpack(out_buff.read())

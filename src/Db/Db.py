@@ -119,7 +119,7 @@ class Db(object):
             self.conn = sqlite3.connect(self.db_path, isolation_level="DEFERRED", check_same_thread=False)
             self.conn.row_factory = sqlite3.Row
             self.conn.set_progress_handler(self.progress, 5000000)
-            self.conn.execute('PRAGMA journal_mode=WAL')
+            self.conn.execute('PRAGMA journal_mode=WAL').fetchone()
             if self.foreign_keys:
                 self.conn.execute("PRAGMA foreign_keys = ON")
             self.cur = self.getCursor()
@@ -232,7 +232,9 @@ class Db(object):
             time.sleep(0.1 * i)
         if len(self.cursors):
             self.log.debug("Killing cursors: %s" % len(self.cursors))
-            self.conn.interrupt()
+            if sys.implementation.name != "pypy":
+                # https://foss.heptapod.net/pypy/pypy/issues/3182
+                self.conn.interrupt()
 
         if self.cur:
             self.cur.close()
@@ -366,11 +368,16 @@ class Db(object):
 
         # Load the json file
         try:
-            if file is None:  # Open file is not file object passed
-                file = open(file_path, "rb")
-
             if file is False:  # File deleted
                 data = {}
+            elif file is None:  # Open file is not file object passed
+                with open(file_path, "rb") as file:
+                    if file_path.endswith("json.gz"):
+                        file = helper.limitedGzipFile(fileobj=file)
+                    if sys.version_info.major == 3 and sys.version_info.minor < 6:
+                        data = json.loads(file.read().decode("utf8"))
+                    else:
+                        data = json.load(file)
             else:
                 if file_path.endswith("json.gz"):
                     file = helper.limitedGzipFile(fileobj=file)
@@ -503,7 +510,8 @@ if __name__ == "__main__":
     logging.getLogger('').setLevel(logging.DEBUG)
     logging.getLogger('').addHandler(console_log)
     console_log.setLevel(logging.DEBUG)
-    dbjson = Db(json.load(open("zerotalk.schema.json")), "data/users/zerotalk.db")
+    with open("zerotalk.schema.json") as f:
+        dbjson = Db(json.load(f), "data/users/zerotalk.db")
     dbjson.collect_stats = True
     dbjson.checkTables()
     cur = dbjson.getCursor()

@@ -49,7 +49,8 @@ class UiRequestPlugin(object):
     # Action: Login
     @helper.encodeResponse
     def actionLogin(self):
-        template = open(plugin_dir + "/login.html").read()
+        with open(plugin_dir + "/login.html") as f:
+            template = f.read()
         self.sendHeader()
         posted = self.getPosted()
         if posted:  # Validate http posted data

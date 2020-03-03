@@ -9,7 +9,8 @@ from Config import config
 @pytest.mark.usefixtures("resetTempSettings")
 class TestAnnounceShare:
     def testAnnounceList(self, file_server):
-        open("%s/trackers.json" % config.data_dir, "w").write("{}")
+        with open("%s/trackers.json" % config.data_dir, "w") as f:
+            f.write("{}")
         tracker_storage = AnnounceSharePlugin.tracker_storage
         tracker_storage.load()
         peer = Peer(file_server.ip, 1544, connection_server=file_server)

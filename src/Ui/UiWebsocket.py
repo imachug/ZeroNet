@@ -589,6 +589,8 @@ class UiWebsocket(object):
                     f_old = self.site.storage.open(inner_path, "rb")
                     f_new = self.site.storage.open(inner_path + "-old", "wb")
                     shutil.copyfileobj(f_old, f_new)
+                    f_old.close()
+                    f_new.close()
 
             self.site.storage.write(inner_path, content)
         except Exception as err:

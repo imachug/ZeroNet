@@ -49,11 +49,10 @@ class ZipStream(object):
 
 if __name__ == "__main__":
     zs = ZipStream(".")
-    out = open("out.zip", "wb")
-    while 1:
-        data = zs.read()
-        print("Write %s" % len(data))
-        if not data:
-            break
-        out.write(data)
-    out.close()
+    with open("out.zip", "wb") as out:
+        while 1:
+            data = zs.read()
+            print("Write %s" % len(data))
+            if not data:
+                break
+            out.write(data)

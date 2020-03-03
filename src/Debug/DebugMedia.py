@@ -69,7 +69,8 @@ def merge(merged_path):
 
     old_parts = {}
     if os.path.isfile(merged_path):  # Find old parts to avoid unncessary recompile
-        merged_old = open(merged_path, "rb").read()
+        with open(merged_path, "rb") as f:
+            merged_old = f.read()
         for match in re.findall(rb"(/\* ---- (.*?) ---- \*/(.*?)(?=/\* ----|$))", merged_old, re.DOTALL):
             old_parts[match[1].decode()] = match[2].strip(b"\n\r")
 
@@ -117,14 +118,16 @@ def merge(merged_path):
             else:  # Not changed use the old_part
                 parts.append(old_parts[file_relative_path])
         else:  # Add to parts
-            parts.append(open(file_path, "rb").read())
+            with open(file_path, "rb") as f:
+                parts.append(f.read())
 
     merged = b"\n".join(parts)
     if ext == "css":  # Vendor prefix css
         from lib.cssvendor import cssvendor
         merged = cssvendor.prefix(merged)
     merged = merged.replace(b"\r", b"")
-    open(merged_path, "wb").write(merged)
+    with open(merged_path, "wb") as f:
+        f.write(merged)
     logging.debug("Merged %s (%.2fs)" % (merged_path, time.time() - s_total))
 
 

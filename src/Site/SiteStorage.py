@@ -190,8 +190,9 @@ class SiteStorage(object):
                 )
             for file_inner_path, file_path in db_files:
                 try:
-                    if self.updateDbFile(file_inner_path, file=open(file_path, "rb"), cur=cur):
-                        num_imported += 1
+                    with open(file_path, "rb") as f:
+                        if self.updateDbFile(file_inner_path, file=f, cur=cur):
+                            num_imported += 1
                 except Exception as err:
                     self.log.error("Error importing %s: %s" % (file_inner_path, Debug.formatException(err)))
                     num_error += 1
@@ -260,7 +261,8 @@ class SiteStorage(object):
     # Open file object
     @thread_pool_fs_read.wrap
     def read(self, inner_path, mode="rb"):
-        return open(self.getPath(inner_path), mode).read()
+        with open(self.getPath(inner_path), mode) as f:
+            return f.read()
 
     @thread_pool_fs_write.wrap
     def writeThread(self, inner_path, content):
@@ -269,7 +271,6 @@ class SiteStorage(object):
         self.ensureDir(os.path.dirname(inner_path))
         # Write file
         if hasattr(content, 'read'):  # File-like object
-
             with open(file_path, "wb") as file:
                 shutil.copyfileobj(content, file)  # Write buff to disk
         else:  # Simple string
@@ -458,7 +459,8 @@ class SiteStorage(object):
                         err = "Invalid size"
                 else:
                     try:
-                        ok = self.site.content_manager.verifyFile(file_inner_path, open(file_path, "rb"))
+                        with open(file_path, "rb") as f:
+                            ok = self.site.content_manager.verifyFile(file_inner_path, f)
                     except Exception as err:
                         ok = False
 
@@ -492,7 +494,8 @@ class SiteStorage(object):
                     ok = os.path.getsize(file_path) == content["files_optional"][file_relative_path]["size"]
                 else:
                     try:
-                        ok = self.site.content_manager.verifyFile(file_inner_path, open(file_path, "rb"))
+                        with open(file_path, "rb") as f:
+                            ok = self.site.content_manager.verifyFile(file_inner_path, f)
                     except Exception as err:
                         ok = False
 

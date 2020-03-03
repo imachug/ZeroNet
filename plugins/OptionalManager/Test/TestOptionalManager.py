@@ -50,7 +50,8 @@ class TestOptionalManager:
         assert not file_row["is_downloaded"]
 
         # Write file from outside of ZeroNet
-        site.storage.open("testfile", "wb").write(b"A" * 1234)  # For quick check hash does not matter only file size
+        with site.storage.open("testfile", "wb") as f:
+            f.write(b"A" * 1234)  # For quick check hash does not matter only file size
 
         hashfield_len_before = len(site.content_manager.hashfield)
         site.storage.verifyFiles(quick_check=True)
@@ -84,8 +85,10 @@ class TestOptionalManager:
         assert site.content_manager.hashfield.getHashId("aaaabbbbcccc") == site.content_manager.hashfield.getHashId("aaaabbbbdddd")
 
         # Write files from outside of ZeroNet (For quick check hash does not matter only file size)
-        site.storage.open("testfile1", "wb").write(b"A" * 1234)
-        site.storage.open("testfile2", "wb").write(b"B" * 2345)
+        with site.storage.open("testfile1", "wb") as f:
+            f.write(b"A" * 1234)
+        with site.storage.open("testfile2", "wb") as f:
+            f.write(b"B" * 2345)
 
         site.storage.verifyFiles(quick_check=True)
 

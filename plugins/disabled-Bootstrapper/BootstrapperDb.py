@@ -39,11 +39,11 @@ class BootstrapperDb(Db.Db):
 
     def createTables(self):
         # Delete all tables
-        self.execute("PRAGMA writable_schema = 1")
+        self.execute("PRAGMA writable_schema = 1").fetchone()
         self.execute("DELETE FROM sqlite_master WHERE type IN ('table', 'index', 'trigger')")
-        self.execute("PRAGMA writable_schema = 0")
+        self.execute("PRAGMA writable_schema = 0").fetchone()
         self.execute("VACUUM")
-        self.execute("PRAGMA INTEGRITY_CHECK")
+        self.execute("PRAGMA INTEGRITY_CHECK").fetchone()
         # Create new tables
         self.execute("""
             CREATE TABLE peer (
@@ -74,7 +74,7 @@ class BootstrapperDb(Db.Db):
                 date_added DATETIME DEFAULT (CURRENT_TIMESTAMP)
             );
         """)
-        self.execute("PRAGMA user_version = %s" % self.version)
+        self.execute("PRAGMA user_version = %s" % self.version).fetchone()
 
     def getHashId(self, hash):
         if hash not in self.hash_ids:

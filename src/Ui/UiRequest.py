@@ -322,7 +322,8 @@ class UiRequest(object):
 
     # Renders a template
     def render(self, template_path, *args, **kwargs):
-        template = open(template_path, encoding="utf8").read()
+        with open(template_path, encoding="utf8") as f:
+            template = f.read()
 
         def renderReplacer(m):
             if m.group(1) in kwargs:
@@ -691,7 +692,8 @@ class UiRequest(object):
             return self.error404(path)
 
         self.sendHeader(200, "text/html", noscript=True)
-        template = open("src/Ui/template/site_add.html").read()
+        with open("src/Ui/template/site_add.html") as f:
+            template = f.read()
         template = template.replace("{url}", html.escape(self.env["PATH_INFO"]))
         template = template.replace("{address}", path_parts["address"])
         template = template.replace("{add_nonce}", self.getAddNonce())
@@ -757,7 +759,7 @@ class UiRequest(object):
 
                 if range_start:
                     file_obj.seek(range_start)
-                while 1:
+                while True:
                     try:
                         block = file_obj.read(block_size)
                         if is_html_file:

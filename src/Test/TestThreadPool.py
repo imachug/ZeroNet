@@ -1,3 +1,4 @@
+import sys
 import time
 import threading
 
@@ -12,12 +13,15 @@ class TestThreadPool:
         with ThreadPool.ThreadPool(4) as pool:
             events = []
 
+            # PyPy is way faster
+            mod = 50 if sys.implementation.name == "pypy" else 1
+
             @pool.wrap
             def blocker():
                 events.append("S")
                 out = 0
-                for i in range(10000000):
-                    if i == 3000000:
+                for i in range(10000000 * mod):
+                    if i == 3000000 * mod:
                         events.append("M")
                     out += 1
                 events.append("D")
@@ -31,7 +35,7 @@ class TestThreadPool:
             assert events == ["S"] * 3 + ["M"] * 3 + ["D"] * 3
 
             res = blocker()
-            assert res == 10000000
+            assert res == 10000000 * mod
 
     def testLockBlockingSameThread(self):
         lock = ThreadPool.Lock()
@@ -101,7 +105,10 @@ class TestThreadPool:
 
                 with pytest.raises(Exception) as greenlet_err:
                     event.get()
-                assert str(greenlet_err.value) == "cannot switch to a different thread"
+                assert str(greenlet_err.value) in (
+                    "cannot switch to a different thread",  # CPython greenlet
+                    "cross-thread double switch"  # PyPy continulet
+                )
 
                 waiter_thread_id = ThreadPool.main_loop.call(event.get)
                 return waiter_thread_id

@@ -135,9 +135,11 @@ class CryptConnectionManager:
         import subprocess
 
         # Replace variables in config template
-        conf_template = open(self.openssl_conf_template).read()
+        with open(self.openssl_conf_template) as f:
+            conf_template = f.read()
         conf_template = conf_template.replace("$ENV::CN", self.openssl_env['CN'])
-        open(self.openssl_conf, "w").write(conf_template)
+        with open(self.openssl_conf, "w") as f:
+            f.write(conf_template)
 
         # Generate CAcert and CAkey
         cmd_params = helper.shellquote(

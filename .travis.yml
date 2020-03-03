@@ -5,6 +5,7 @@ python:
   - 3.6
   - 3.7
   - 3.8
+  - pypy3
 services:
  - docker
 cache: pip
@@ -24,7 +25,12 @@ before_script:
       sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6';
     fi
 script:
- - catchsegv python -m pytest src/Test --cov=src --cov-config src/Test/coverage.ini
+ - |
+    if [ "${TRAVIS_PYTHON_VERSION}" == "pypy3" ]; then
+      catchsegv python -m pytest src/Test
+    else
+      catchsegv python -m pytest src/Test --cov=src --cov-config src/Test/coverage.ini
+    fi
  - export ZERONET_LOG_DIR="log/CryptMessage"; catchsegv python -m pytest -x plugins/CryptMessage/Test
  - export ZERONET_LOG_DIR="log/Bigfile"; catchsegv python -m pytest -x plugins/Bigfile/Test
  - export ZERONET_LOG_DIR="log/AnnounceLocal"; catchsegv python -m pytest -x plugins/AnnounceLocal/Test

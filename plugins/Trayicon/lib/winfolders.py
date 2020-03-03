@@ -49,6 +49,7 @@ def get(intFolder):
 
 
 if __name__ == "__main__":
-	import os
-	print(get(STARTUP))
-	open(get(STARTUP)+"\\zeronet.cmd", "w").write("cd /D %s\r\nzeronet.py" % os.getcwd())
+    import os
+    print(get(STARTUP))
+    with open(get(STARTUP)+"\\zeronet.cmd", "w") as f:
+        f.write("cd /D %s\r\nzeronet.py" % os.getcwd())

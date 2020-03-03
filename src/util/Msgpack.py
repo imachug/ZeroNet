@@ -39,20 +39,15 @@ def stream(data, writer):
 
 
 class FilePart(object):
-    __slots__ = ("file", "read_bytes", "__class__")
+    __slots__ = ("file", "read_bytes", "__class__", "__enter__", "__exit__")
 
     def __init__(self, *args, **kwargs):
         self.file = open(*args, **kwargs)
-        self.__enter__ == self.file.__enter__
+        self.__enter__ = self.file.__enter__
+        self.__exit__ = self.file.__exit__
 
     def __getattr__(self, attr):
         return getattr(self.file, attr)
-
-    def __enter__(self, *args, **kwargs):
-        return self.file.__enter__(*args, **kwargs)
-
-    def __exit__(self, *args, **kwargs):
-        return self.file.__exit__(*args, **kwargs)
 
 
 # Don't try to decode the value of these fields as utf8

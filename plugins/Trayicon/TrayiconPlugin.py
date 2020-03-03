@@ -155,7 +155,10 @@ class ActionsPlugin(object):
 
     def isAutorunEnabled(self):
         path = self.getAutorunPath()
-        return os.path.isfile(path) and open(path, "rb").read().decode("utf8") == self.formatAutorun()
+        if not os.path.isfile(path):
+            return False
+        with open(path, "rb", encoding="utf-8") as f:
+            return f.read() == self.formatAutorun()
 
     def titleAutorun(self):
         translate = _["Start ZeroNet when Windows starts"]
@@ -168,4 +171,5 @@ class ActionsPlugin(object):
         if self.isAutorunEnabled():
             os.unlink(self.getAutorunPath())
         else:
-            open(self.getAutorunPath(), "wb").write(self.formatAutorun().encode("utf8"))
+            with open(self.getAutorunPath(), "wb", encoding="utf-8") as f:
+                f.write(self.formatAutorun())

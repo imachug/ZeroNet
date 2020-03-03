@@ -26,7 +26,8 @@ class UserManager(object):
         # Load new users
         try:
             json_path = "%s/users.json" % config.data_dir
-            data = json.load(open(json_path))
+            with open(json_path) as f:
+                data = json.load(f)
         except Exception as err:
             raise Exception("Unable to load %s: %s" % (json_path, err))
 

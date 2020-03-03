@@ -74,7 +74,8 @@ class ActionsPlugin:
                 data = {"test": []}
                 for i in range(1000):  # 1000 line of data
                     data["test"].append({"test_id": i, "title": "Testdata for %s message %s" % (u, i)})
-                json.dump(data, open("%s/test_%s.json" % (config.data_dir, u), "w"))
+                with open("%s/test_%s.json" % (config.data_dir, u), "w") as f:
+                    json.dump(data, f)
                 db.updateJson("%s/test_%s.json" % (config.data_dir, u))
                 os.unlink("%s/test_%s.json" % (config.data_dir, u))
                 assert db.execute("SELECT COUNT(*) FROM test").fetchone()[0] == 1000
@@ -88,7 +89,8 @@ class ActionsPlugin:
             data = {"test": []}
             for i in range(100):  # 1000 line of data
                 data["test"].append({"test_id": i, "title": "Testdata for %s message %s" % (u, i)})
-            json.dump(data, open("%s/test_%s.json" % (config.data_dir, u), "w"))
+            with open("%s/test_%s.json" % (config.data_dir, u), "w") as f:
+                json.dump(data, f)
             db.updateJson("%s/test_%s.json" % (config.data_dir, u), cur=cur)
             os.unlink("%s/test_%s.json" % (config.data_dir, u))
             if u % 10 == 0:

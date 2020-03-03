@@ -36,7 +36,8 @@ class ActionsPlugin:
         archive_size = os.path.getsize(zip_path) / 1024
         yield "(Generated file size: %.2fkB)" % archive_size
 
-        hash = CryptHash.sha512sum(open(zip_path, "rb"))
+        with open(zip_path, "rb") as f:
+            hash = CryptHash.sha512sum(f)
         valid = "cb32fb43783a1c06a2170a6bc5bb228a032b67ff7a1fd7a5efb9b467b400f553"
         assert hash == valid, "Invalid hash: %s != %s<br>" % (hash, valid)
         os.unlink(zip_path)
@@ -56,8 +57,9 @@ class ActionsPlugin:
             with zipfile.ZipFile(zip_path) as archive:
                 for f in archive.filelist:
                     assert f.filename.startswith(file_name), "Invalid filename: %s != %s" % (f.filename, file_name)
-                    data = archive.open(f.filename).read()
-                    assert archive.open(f.filename).read() == test_data, "Invalid data: %s..." % data[0:30]
+                    with archive.open(f.filename) as f:
+                        data = f.read()
+                    assert data == test_data, "Invalid data: %s..." % data[0:30]
             yield "."
 
         os.unlink(zip_path)
@@ -103,7 +105,8 @@ class ActionsPlugin:
         archive_size = os.path.getsize(archive_path) / 1024
         yield "(Generated file size: %.2fkB)" % archive_size
 
-        hash = CryptHash.sha512sum(open("%s/test.tar.%s" % (config.data_dir, archive_type), "rb"))
+        with open("%s/test.tar.%s" % (config.data_dir, archive_type), "rb") as f:
+            hash = CryptHash.sha512sum(f)
         valid = hash_valid_db[archive_type]
         assert hash == valid, "Invalid hash: %s != %s<br>" % (hash, valid)
 

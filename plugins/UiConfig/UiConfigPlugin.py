@@ -39,12 +39,13 @@ class UiRequestPlugin(object):
                 from Debug import DebugMedia
                 DebugMedia.merge(file_path)
 
+            with open(file_path) as f:
+                data = f.read()
+
             if file_path.endswith("js"):
-                data = _.translateData(open(file_path).read(), mode="js").encode("utf8")
+                data = _.translateData(data, mode="js").encode("utf8")
             elif file_path.endswith("html"):
-                data = _.translateData(open(file_path).read(), mode="html").encode("utf8")
-            else:
-                data = open(file_path, "rb").read()
+                data = _.translateData(data, mode="html").encode("utf8")
 
             return self.actionFile(file_path, file_obj=io.BytesIO(data), file_size=len(data))
         else:

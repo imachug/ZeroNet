@@ -39,9 +39,11 @@ if not os.path.isdir(config.data_dir):
         startupError("Can't change permission of %s: %s" % (config.data_dir, err))
 
 if not os.path.isfile("%s/sites.json" % config.data_dir):
-    open("%s/sites.json" % config.data_dir, "w").write("{}")
+    with open("%s/sites.json" % config.data_dir, "w") as f:
+        f.write("{}")
 if not os.path.isfile("%s/users.json" % config.data_dir):
-    open("%s/users.json" % config.data_dir, "w").write("{}")
+    with open("%s/users.json" % config.data_dir, "w") as f:
+        f.write("{}")
 
 if config.action == "main":
     from util import helper
@@ -190,7 +192,8 @@ class Actions(object):
         SiteManager.site_manager.load()
 
         os.mkdir("%s/%s" % (config.data_dir, address))
-        open("%s/%s/index.html" % (config.data_dir, address), "w").write("Hello %s!" % address)
+        with open("%s/%s/index.html" % (config.data_dir, address), "w") as f:
+            f.write("Hello %s!" % address)
 
         logging.info("Creating content.json...")
         site = Site(address)
@@ -251,9 +254,10 @@ class Actions(object):
             logging.info("Verifing %s signature..." % content_inner_path)
             err = None
             try:
-                file_correct = site.content_manager.verifyFile(
-                    content_inner_path, site.storage.open(content_inner_path, "rb"), ignore_same=False
-                )
+                with site.storage.open(content_inner_path, "rb") as f:
+                    file_correct = site.content_manager.verifyFile(
+                        content_inner_path, f, ignore_same=False
+                    )
             except Exception as err:
                 file_correct = False
 
